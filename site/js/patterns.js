@@ -945,3 +945,732 @@ def('truchet', 'Truchet Rings', 'geo', (ctx, o) => {
     }
   }
 });
+
+def('rainbowtiles', 'Rainbow Tiles', '70s', (ctx, o) => {
+  const { rng } = o;
+  const s = 120 * o.scale;
+  const n = 2 + Math.round(o.detail * 0.45);
+  const mode = Math.floor(rng() * 5); // 0 arches, 1 circles, 2 fans, 3 pinwheel, 4 random
+  const pal = rng() < 0.6 ? inks(o) : o.colors;
+  const start = Math.floor(rng() * pal.length);
+  const hole = rng() < 0.5; // leave the centre open, like a rainbow
+  const checker = rng() < 0.3 && o.ink.length >= 3;
+  const tileBg = [o.bg, checker ? cyc(o.ink, start + n + 1) : o.bg];
+  const cols = Math.ceil(o.W / s) + 1;
+  const rows = Math.ceil(o.H / s) + 1;
+  // Corners: 0 top-left, 1 top-right, 2 bottom-right, 3 bottom-left.
+  const corner = (i, j) => {
+    if (mode === 0) return i & 1 ? 3 : 2;
+    if (mode === 1) return [[2, 1], [3, 0]][i & 1][j & 1];
+    if (mode === 2) return 3;
+    if (mode === 3) return [2, 3, 0, 1][((i & 1) + 2 * (j & 1)) % 4];
+    return Math.floor(o.hash(i, j) * 4);
+  };
+  const bands = n + (hole ? 1 : 0);
+  // One path per (band, colour): equal bands in neighbouring tiles merge without hairlines.
+  const layers = Array.from({ length: n }, () => new Map());
+  const bgPaths = new Map();
+  const add = (map, col) => map.get(col) || map.set(col, new Path2D()).get(col);
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const x = i * s;
+      const y = j * s;
+      add(bgPaths, tileBg[(i + j) & 1]).rect(x, y, s, s);
+      const q = corner(i, j);
+      const cx = x + (q === 1 || q === 2 ? s : 0);
+      const cy = y + (q >= 2 ? s : 0);
+      const a0 = [0, 0.5, 1, 1.5][q] * Math.PI;
+      for (let k = 0; k < n; k++) {
+        const r = s * (1 - k / bands);
+        const p = add(layers[k], cyc(pal, start + k));
+        p.moveTo(cx, cy);
+        p.arc(cx, cy, r, a0, a0 + Math.PI / 2);
+        p.closePath();
+      }
+    }
+  }
+  const fillAll = (map) => {
+    for (const [col, p] of map) {
+      ctx.fillStyle = col;
+      ctx.fill(p);
+    }
+  };
+  if (checker) fillAll(bgPaths);
+  for (const layer of layers) fillAll(layer);
+  if (hole) {
+    const p = new Path2D();
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        const q = corner(i, j);
+        const cx = i * s + (q === 1 || q === 2 ? s : 0);
+        const cy = j * s + (q >= 2 ? s : 0);
+        const a0 = [0, 0.5, 1, 1.5][q] * Math.PI;
+        p.moveTo(cx, cy);
+        p.arc(cx, cy, s / bands, a0, a0 + Math.PI / 2);
+        p.closePath();
+      }
+    }
+    ctx.fillStyle = o.bg;
+    ctx.fill(p);
+  }
+});
+
+// ================================================================ more geometric
+
+def('cubes', 'Tumbling Blocks', 'geo', (ctx, o) => {
+  const { rng } = o;
+  const a = 62 * o.scale;
+  const w = Math.sqrt(3) * a;
+  const mode = Math.floor(rng() * 3); // 0 classic three tones, 1 coloured cubes, 2 coloured rows
+  const byLum = o.colors.slice().sort((p, q) => luminance(q) - luminance(p));
+  const L = byLum.length;
+  const classic = [byLum[0], byLum[Math.floor((L - 1) / 2)], byLum[L - 1]];
+  const hues = others(o.colors, o.bg);
+  const shade = (c) => [mixHex(c, '#ffffff', 0.38), c, mixHex(c, '#000000', 0.4)];
+  const inset = o.detail >= 7 ? 0.42 + (o.detail - 7) * 0.05 : 0; // Vasarely-style inner cubes
+  const cols = Math.ceil(o.W / w) + 2;
+  const rows = Math.ceil(o.H / (1.5 * a)) + 2;
+  const paths = new Map();
+  const add = (col) => paths.get(col) || paths.set(col, new Path2D()).get(col);
+  const face = (col, pts) => {
+    const p = add(col);
+    p.moveTo(...pts[0]);
+    for (let q = 1; q < pts.length; q++) p.lineTo(...pts[q]);
+    p.closePath();
+  };
+  const cube = (cx, cy, r, tones) => {
+    const T = [cx, cy - r], UR = [cx + (w / a) * r / 2, cy - r / 2], LR = [cx + (w / a) * r / 2, cy + r / 2];
+    const B = [cx, cy + r], LL = [cx - (w / a) * r / 2, cy + r / 2], UL = [cx - (w / a) * r / 2, cy - r / 2];
+    const C = [cx, cy];
+    face(tones[0], [T, UR, C, UL]);
+    face(tones[2], [C, UR, LR, B]);
+    face(tones[1], [C, B, LL, UL]);
+  };
+  for (let j = -1; j < rows; j++) {
+    for (let i = -1; i < cols; i++) {
+      const cx = i * w + (j & 1 ? w / 2 : 0);
+      const cy = j * 1.5 * a;
+      let tones = classic;
+      if (mode === 1) tones = shade(hues[Math.floor(o.hash(i, j) * hues.length)]);
+      else if (mode === 2) tones = shade(cyc(hues, j));
+      cube(cx, cy, a, tones);
+      if (inset) {
+        const inner = mode === 0 ? [tones[2], tones[0], tones[1]] : shade(cyc(hues, Math.floor(o.hash(i, j, 1) * hues.length)));
+        cube(cx, cy, a * inset, inner);
+      }
+    }
+  }
+  // Inner cubes overlap the outer faces, so fill outer and inner passes in order.
+  for (const [col, p] of paths) {
+    ctx.fillStyle = col;
+    ctx.fill(p);
+  }
+});
+
+def('opsquares', 'Op Squares', 'geo', (ctx, o) => {
+  const { rng } = o;
+  const base = 62 * o.scale;
+  const ink = contrastInk(o);
+  const duo = o.colors.length > 2 && rng() < 0.3;
+  const A = duo ? o.ink[0] : o.bg;
+  const B = duo ? cyc(o.ink, 1 + Math.floor(rng() * (o.ink.length - 1))) : ink;
+  const vertical = rng() < 0.3;
+  const minF = o.rand(0.05, 0.16);
+  const folds = rng() < 0.65 ? 1 : 2;
+  const both = rng() < 0.25;
+  const sharp = 1 + o.detail * 0.18;
+
+  withTurn(ctx, o, vertical ? Math.PI / 2 : 0, (W, H) => {
+    const foldsX = folds === 1 ? [W * o.rand(0.35, 0.65)] : [W * o.rand(0.2, 0.38), W * o.rand(0.62, 0.8)];
+    const spreadX = W * o.rand(0.22, 0.38) / folds;
+    const width = (d, spr) => base * (minF + (1 - minF) * (1 - Math.pow(1 - Math.min(1, d / spr), sharp)));
+    // Walk outward from each fold to the edge of its region, so columns mirror exactly about it.
+    // Regions between two folds meet at their midpoint.
+    const edges = (len, fs, spr) => {
+      const mids = fs.slice(1).map((f, q) => (fs[q] + f) / 2);
+      const e = [...mids];
+      fs.forEach((f, q) => {
+        const lo = q === 0 ? -base : mids[q - 1];
+        const hi = q === fs.length - 1 ? len + base : mids[q];
+        e.push(f);
+        for (const sgn of [-1, 1]) {
+          const outer = sgn < 0 ? q === 0 : q === fs.length - 1;
+          let x = f + sgn * width(0, spr);
+          for (;;) {
+            const inside = sgn < 0 ? x > lo : x < hi;
+            if (!inside) {
+              if (outer) e.push(x);
+              break;
+            }
+            // Skip an edge that would leave a sliver against the midpoint.
+            const toMid = sgn < 0 ? x - lo : hi - x;
+            if (outer || toMid > base * 0.3) e.push(x);
+            x += sgn * width(Math.abs(x - f), spr);
+          }
+        }
+      });
+      return e.sort((a, b) => a - b);
+    };
+    const xs = edges(W, foldsX, spreadX);
+    const ys = both ? edges(H, [H * o.rand(0.35, 0.65)], H * o.rand(0.25, 0.4)) : Array.from({ length: Math.ceil(H / base) + 3 }, (_, k) => (k - 1) * base);
+    ctx.fillStyle = A;
+    ctx.fillRect(-base, -base, W + 2 * base, H + 2 * base);
+    const p = new Path2D();
+    for (let j = 0; j < ys.length - 1; j++) {
+      for (let i = 0; i < xs.length - 1; i++) {
+        if ((i + j) & 1) p.rect(xs[i], ys[j], xs[i + 1] - xs[i], ys[j + 1] - ys[j]);
+      }
+    }
+    ctx.fillStyle = B;
+    ctx.fill(p);
+  });
+});
+
+// ================================================================ Art & abstract
+
+function mixHex(a, b, t) {
+  const A = hexToRgb(a);
+  const B = hexToRgb(b);
+  return `#${A.map((v, i) => Math.round(v + (B[i] - v) * t).toString(16).padStart(2, '0')).join('')}`;
+}
+
+function rgba(hex, alpha) {
+  const [r, g, b] = hexToRgb(hex);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// The ink that stands out most against the background: black lines on cream, cream lines on night.
+function contrastInk(o) {
+  const lb = luminance(o.bg);
+  return o.ink.reduce((a, b) => (Math.abs(luminance(b) - lb) > Math.abs(luminance(a) - lb) ? b : a));
+}
+
+// Mitchell's best-candidate sampling: evenly spread but never regular. Always the same number of rng() calls.
+function spread(o, n, margin, taken = []) {
+  const pts = taken.slice();
+  const out = [];
+  for (let k = 0; k < n; k++) {
+    let best = null;
+    let bestD = -1;
+    for (let c = 0; c < 10; c++) {
+      const x = o.W * (margin + o.rng() * (1 - 2 * margin));
+      const y = o.H * (margin + o.rng() * (1 - 2 * margin));
+      let d = Infinity;
+      for (const [px, py] of pts) d = Math.min(d, (px - x) ** 2 + (py - y) ** 2);
+      if (d > bestD) {
+        bestD = d;
+        best = [x, y];
+      }
+    }
+    pts.push(best);
+    out.push(best);
+  }
+  return out;
+}
+
+function gauss(o) {
+  return Math.sqrt(-2 * Math.log(1 - o.rng())) * Math.cos(TAU * o.rng());
+}
+
+// A slightly irregular circle, as if cut or painted by hand. wob is the relative wobble.
+function wobbleCircle(p, cx, cy, r, wob, ph) {
+  const N = 96;
+  for (let q = 0; q <= N; q++) {
+    const t = (q / N) * TAU;
+    const rr = r * (1 + wob * (Math.sin(2 * t + ph[0]) * 0.6 + Math.sin(3 * t + ph[1]) * 0.3 + Math.sin(5 * t + ph[2]) * 0.1));
+    if (q) p.lineTo(cx + rr * Math.cos(t), cy + rr * Math.sin(t));
+    else p.moveTo(cx + rr * Math.cos(t), cy + rr * Math.sin(t));
+  }
+  p.closePath();
+}
+
+def('composition', 'Composition', 'art', (ctx, o) => {
+  const { rng } = o;
+  const S = Math.min(o.W, o.H);
+  const k = o.scale;
+  const line = contrastInk(o);
+  const fills = others(o.colors, o.bg, line);
+  const tint = luminance(o.bg) >= luminance(line) ? 'multiply' : 'screen';
+  const amount = 0.45 + o.detail * 0.11;
+  const count = (b) => Math.max(1, Math.round(b * amount));
+  const col = () => o.pick(fills);
+  const lw = (w) => w * (0.55 + 0.45 * k);
+  // Two dominant directions give the linework structure instead of a tangle.
+  const dirA = o.rand(0, Math.PI);
+  const dirB = dirA + o.rand(0.9, 1.5) * (rng() < 0.5 ? 1 : -1);
+  const dir = () => (rng() < 0.55 ? dirA : dirB) + o.rand(-0.12, 0.12);
+  // A few hubs pull elements into clusters, leaving calm open space elsewhere.
+  const hubs = spread(o, 3, 0.2);
+  const free = spread(o, 40, 0.06, hubs);
+  let fi = 0;
+  const at = (tight = 0.16) => {
+    if (rng() < 0.6) {
+      const [hx, hy] = o.pick(hubs);
+      return [hx + gauss(o) * S * tight, hy + gauss(o) * S * tight];
+    }
+    return free[fi++ % free.length];
+  };
+  const seg = (x, y, a, len, w, c) => {
+    ctx.strokeStyle = c;
+    ctx.lineWidth = w;
+    ctx.beginPath();
+    ctx.moveTo(x - (Math.cos(a) * len) / 2, y - (Math.sin(a) * len) / 2);
+    ctx.lineTo(x + (Math.cos(a) * len) / 2, y + (Math.sin(a) * len) / 2);
+    ctx.stroke();
+  };
+  const poly = (pts) => {
+    ctx.beginPath();
+    ctx.moveTo(...pts[0]);
+    for (let q = 1; q < pts.length; q++) ctx.lineTo(...pts[q]);
+    ctx.closePath();
+  };
+  const glow = (x, y, r0, r1, c, alpha) => {
+    const g = ctx.createRadialGradient(x, y, r0, x, y, r1);
+    g.addColorStop(0, rgba(c, alpha));
+    g.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = g;
+    ctx.beginPath();
+    ctx.arc(x, y, r1, 0, TAU);
+    ctx.fill();
+  };
+  ctx.lineCap = 'butt';
+
+  // Washes: broad, faint clouds of colour that fade out on every side, plus sometimes a crisp plane.
+  ctx.globalCompositeOperation = tint;
+  for (let q = 0; q < 2; q++) {
+    const [x, y] = free[fi++];
+    const a = dir();
+    const len = S * o.rand(0.45, 0.8) * k;
+    const th = S * o.rand(0.14, 0.3) * k;
+    const c = mixHex(col(), o.bg, 0.3);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    ctx.scale(len / th, 1);
+    const g = ctx.createRadialGradient(0, 0, 0, 0, 0, th);
+    g.addColorStop(0, rgba(c, 0.34));
+    g.addColorStop(0.6, rgba(c, 0.16));
+    g.addColorStop(1, rgba(c, 0));
+    ctx.fillStyle = g;
+    ctx.fillRect(-th, -th, 2 * th, 2 * th);
+    ctx.restore();
+  }
+  if (rng() < 0.5) {
+    const [x, y] = free[fi++];
+    const a = dir();
+    const r = S * o.rand(0.25, 0.45) * k;
+    ctx.fillStyle = rgba(mixHex(col(), o.bg, 0.4), 0.22);
+    poly([0, 1, 2, 3].map((q) => {
+      const t = a + q * Math.PI / 2 + o.rand(-0.35, 0.35);
+      return [x + Math.cos(t) * r * o.rand(0.6, 1.2), y + Math.sin(t) * r * o.rand(0.6, 1.2)];
+    }));
+    ctx.fill();
+  }
+
+  // Large triangles and half-discs, overprinted.
+  for (let q = 0; q < count(2.5); q++) {
+    const [x, y] = at(0.22);
+    const sz = S * o.rand(0.07, 0.17) * k;
+    const a = o.rand(0, TAU);
+    const wd = o.rand(0.28, 0.6);
+    const pts = [
+      [x + Math.cos(a) * sz * 1.5, y + Math.sin(a) * sz * 1.5],
+      [x + Math.cos(a + Math.PI / 2) * sz * wd - Math.cos(a) * sz * 0.5, y + Math.sin(a + Math.PI / 2) * sz * wd - Math.sin(a) * sz * 0.5],
+      [x - Math.cos(a + Math.PI / 2) * sz * wd - Math.cos(a) * sz * 0.5, y - Math.sin(a + Math.PI / 2) * sz * wd - Math.sin(a) * sz * 0.5],
+    ];
+    ctx.globalCompositeOperation = tint;
+    ctx.fillStyle = col();
+    poly(pts);
+    ctx.fill();
+    if (rng() < 0.45) {
+      ctx.globalCompositeOperation = 'source-over';
+      ctx.strokeStyle = line;
+      ctx.lineWidth = lw(2);
+      ctx.stroke();
+    }
+  }
+  for (let q = 0; q < count(1.2); q++) {
+    const [x, y] = at();
+    const r = S * o.rand(0.04, 0.09) * k;
+    const a = o.rand(0, TAU);
+    ctx.globalCompositeOperation = tint;
+    ctx.fillStyle = col();
+    ctx.beginPath();
+    ctx.arc(x, y, r, a, a + Math.PI);
+    ctx.closePath();
+    ctx.fill();
+    ctx.globalCompositeOperation = 'source-over';
+    seg(x, y, a, r * 2.6, lw(2.4), line);
+  }
+
+  // The focal circle: a dark disc in a glowing halo, a ringed target, or a coloured sun.
+  ctx.globalCompositeOperation = 'source-over';
+  {
+    const [x, y] = hubs[0];
+    const R = S * o.rand(0.09, 0.13) * k;
+    const kind = rng();
+    const c1 = col();
+    const c2 = o.pick(others(fills, c1));
+    const a = o.rand(0, TAU);
+    if (kind < 0.5) {
+      glow(x, y, R * 0.9, R * 1.75, c1, 0.9);
+      disc(ctx, x, y, R * 1.08, c1);
+      disc(ctx, x, y, R, line);
+      disc(ctx, x + Math.cos(a) * R * 0.2, y + Math.sin(a) * R * 0.2, R * o.rand(0.32, 0.5), c2);
+    } else if (kind < 0.75) {
+      const m = 3 + Math.floor(rng() * 3);
+      for (let q = 0; q < m; q++) {
+        const rr = R * 1.15 * (1 - q / m);
+        disc(ctx, x + Math.cos(a) * (R - rr) * 0.25, y + Math.sin(a) * (R - rr) * 0.25, rr, q & 1 ? c2 : q === 0 ? line : c1);
+      }
+    } else {
+      glow(x, y, R * 0.6, R * 1.6, c2, 0.7);
+      disc(ctx, x, y, R, c1);
+      ctx.strokeStyle = line;
+      ctx.lineWidth = lw(3);
+      ctx.beginPath();
+      ctx.arc(x, y, R, 0, TAU);
+      ctx.stroke();
+      disc(ctx, x + Math.cos(a) * R * 0.45, y + Math.sin(a) * R * 0.45, R * 0.3, line);
+    }
+  }
+
+  // Lines: singles and fanned bundles along the two main directions.
+  for (let q = 0; q < count(8); q++) {
+    const [x, y] = at(0.2);
+    const a = dir();
+    const len = S * o.rand(0.25, 0.85);
+    const w = lw(o.pick([1.2, 1.6, 2.2, 2.2, 3.5, 6, 9]));
+    if (rng() < 0.22) {
+      const m = 3 + Math.floor(rng() * 3);
+      const spreadA = o.rand(0.04, 0.12);
+      for (let b = 0; b < m; b++) {
+        const ab = a + (b - (m - 1) / 2) * spreadA / m;
+        const ox = x - Math.cos(a) * len * 0.5;
+        const oy = y - Math.sin(a) * len * 0.5;
+        seg(ox + (Math.cos(ab) * len) / 2, oy + (Math.sin(ab) * len) / 2, ab, len, lw(1.2), line);
+      }
+    } else {
+      seg(x, y, a, len, w, line);
+    }
+  }
+  for (let q = 0; q < count(3); q++) {
+    const [x, y] = at(0.25);
+    const r = S * o.rand(0.12, 0.4);
+    const a = o.rand(0, TAU);
+    ctx.strokeStyle = line;
+    ctx.lineWidth = lw(o.pick([1.4, 2, 3]));
+    ctx.beginPath();
+    ctx.arc(x, y, r, a, a + o.rand(0.5, 1.5));
+    ctx.stroke();
+  }
+
+  // Circles of every kind.
+  const nC = count(9);
+  for (let q = 0; q < nC; q++) {
+    const [x, y] = at(0.18);
+    const r = S * k * (0.01 + 0.05 * rng() ** 1.6);
+    const t = rng();
+    const c1 = col();
+    const c2 = o.pick(others(fills, c1));
+    ctx.globalCompositeOperation = 'source-over';
+    if (t < 0.22) {
+      glow(x, y, r * 0.9, r * 1.6, c2, 0.85);
+      disc(ctx, x, y, r, c1);
+    } else if (t < 0.42) {
+      disc(ctx, x, y, r, c1);
+      ctx.strokeStyle = line;
+      ctx.lineWidth = lw(1.6);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.stroke();
+    } else if (t < 0.58) {
+      ctx.strokeStyle = line;
+      ctx.lineWidth = Math.max(lw(1.4), r * 0.12);
+      ctx.beginPath();
+      ctx.arc(x, y, r, 0, TAU);
+      ctx.stroke();
+    } else if (t < 0.78) {
+      disc(ctx, x, y, r, c1);
+      disc(ctx, x, y, r * 0.62, c2);
+      disc(ctx, x, y, r * 0.28, line);
+    } else {
+      disc(ctx, x, y, r, line);
+      disc(ctx, x + r * 0.18, y - r * 0.12, r * 0.55, c1);
+    }
+  }
+
+  // Small structures: checkerboards, ladders, squiggles, bars, rays and dots.
+  ctx.globalCompositeOperation = 'source-over';
+  for (let q = 0; q < count(1.3); q++) {
+    const [x, y] = at();
+    const m = 2 + Math.floor(rng() * 4);
+    const nn = 2 + Math.floor(rng() * 3);
+    const cs = S * o.rand(0.016, 0.028) * k;
+    const c = col();
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(o.rand(-0.5, 0.5));
+    for (let a = 0; a < m; a++) {
+      for (let b = 0; b < nn; b++) {
+        ctx.fillStyle = (a + b) & 1 ? c : line;
+        ctx.fillRect((a - m / 2) * cs, (b - nn / 2) * cs, cs + 0.02, cs + 0.02);
+      }
+    }
+    ctx.restore();
+  }
+  for (let q = 0; q < count(1.2); q++) {
+    const [x, y] = at();
+    const a = dir();
+    const len = S * o.rand(0.12, 0.3);
+    seg(x, y, a, len, lw(1.6), line);
+    const m = 4 + Math.floor(rng() * 6);
+    const tl = S * o.rand(0.012, 0.03);
+    for (let b = 0; b < m; b++) {
+      const t = (b / (m - 1) - 0.5) * len * 0.8;
+      seg(x + Math.cos(a) * t, y + Math.sin(a) * t, a + Math.PI / 2, tl, lw(1.4), line);
+    }
+  }
+  for (let q = 0; q < count(1); q++) {
+    const [x, y] = at();
+    const a = dir();
+    const len = S * o.rand(0.15, 0.3);
+    const amp = S * o.rand(0.008, 0.02);
+    const waves = 3 + Math.floor(rng() * 4);
+    ctx.strokeStyle = line;
+    ctx.lineWidth = lw(1.8);
+    ctx.beginPath();
+    for (let s = 0; s <= 80; s++) {
+      const t = (s / 80 - 0.5) * len;
+      const off = amp * Math.sin((s / 80) * TAU * waves);
+      const px = x + Math.cos(a) * t - Math.sin(a) * off;
+      const py = y + Math.sin(a) * t + Math.cos(a) * off;
+      if (s) ctx.lineTo(px, py);
+      else ctx.moveTo(px, py);
+    }
+    ctx.stroke();
+  }
+  for (let q = 0; q < count(2.5); q++) {
+    const [x, y] = at();
+    const a = dir();
+    const bl = S * o.rand(0.03, 0.08) * k;
+    const bw = bl * o.rand(0.12, 0.3);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    ctx.fillStyle = rng() < 0.3 ? line : col();
+    ctx.fillRect(-bl / 2, -bw / 2, bl, bw);
+    ctx.restore();
+  }
+  if (rng() < 0.4 + o.detail * 0.05) {
+    const [x, y] = at();
+    const a = o.rand(0, TAU);
+    const m = 5 + Math.floor(rng() * 6);
+    const len = S * o.rand(0.08, 0.18);
+    for (let b = 0; b < m; b++) {
+      const ab = a + (b / (m - 1) - 0.5) * 0.9;
+      seg(x + (Math.cos(ab) * len) / 2, y + (Math.sin(ab) * len) / 2, ab, len, lw(1.2), line);
+    }
+  }
+  for (let q = 0; q < count(1.5); q++) {
+    const [x, y] = at();
+    const a = dir();
+    const m = 3 + Math.floor(rng() * 5);
+    const gap = S * o.rand(0.012, 0.022);
+    const r = gap * o.rand(0.22, 0.34);
+    for (let b = 0; b < m; b++) disc(ctx, x + Math.cos(a) * gap * b, y + Math.sin(a) * gap * b, r, line);
+  }
+}, { thumb: { scale: 1.1 } });
+
+def('circles', 'Floating Circles', 'art', (ctx, o) => {
+  const { rng } = o;
+  const S = Math.min(o.W, o.H);
+  const k = o.scale;
+  // These circles want a night sky. A light background becomes a circle colour instead.
+  const lightBg = luminance(o.bg) > 110;
+  const deep = darkest(o.colors);
+  const ground = lightBg ? mixHex(deep, '#07070d', 0.72) : o.bg;
+  const pal = lightBg ? others(o.colors, deep) : others(o.colors, o.bg);
+  const lightest = o.colors.reduce((a, b) => (luminance(b) > luminance(a) ? b : a));
+  // A soft cloud of light behind the cluster.
+  const [gx, gy] = [o.W * o.rand(0.35, 0.65), o.H * o.rand(0.35, 0.65)];
+  const cloud = ctx.createRadialGradient(gx, gy, 0, gx, gy, Math.hypot(o.W, o.H) * 0.6);
+  cloud.addColorStop(0, mixHex(ground, lightest, 0.13));
+  cloud.addColorStop(1, ground);
+  ctx.fillStyle = cloud;
+  ctx.fillRect(-o.W, -o.H, 3 * o.W, 3 * o.H);
+
+  const hubs = spread(o, 2 + Math.floor(rng() * 2), 0.22);
+  const N = Math.round((10 + o.detail * 4.5) / Math.sqrt(k));
+  const items = [];
+  // The big one: a dark disc with a coloured corona.
+  items.push({ x: hubs[0][0], y: hubs[0][1], r: S * o.rand(0.14, 0.2) * k, big: true });
+  for (let q = 0; q < N; q++) {
+    let x, y;
+    if (rng() < 0.65) {
+      const [hx, hy] = o.pick(hubs);
+      x = hx + gauss(o) * S * 0.2;
+      y = hy + gauss(o) * S * 0.2;
+    } else {
+      x = o.rand(-0.05, 1.05) * o.W;
+      y = o.rand(-0.05, 1.05) * o.H;
+    }
+    items.push({ x, y, r: S * k * (0.008 + 0.08 * rng() ** 2.4) });
+  }
+  items.sort((a, b) => b.r - a.r);
+  ctx.globalCompositeOperation = 'screen';
+  for (const it of items) {
+    const c1 = o.pick(pal);
+    const c2 = o.pick(others(pal, c1));
+    const t = rng();
+    const { x, y, r } = it;
+    if (it.big) {
+      ctx.globalCompositeOperation = 'source-over';
+      const g = ctx.createRadialGradient(x, y, r * 0.95, x, y, r * 1.5);
+      g.addColorStop(0, rgba(c2, 0.95));
+      g.addColorStop(1, rgba(c2, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 1.5, 0, TAU);
+      ctx.fill();
+      disc(ctx, x, y, r, mixHex(ground, '#000000', 0.55));
+      disc(ctx, x + r * 0.25, y - r * 0.2, r * 0.32, c1);
+      ctx.globalCompositeOperation = 'screen';
+      continue;
+    }
+    ctx.globalAlpha = o.rand(0.75, 0.95);
+    if (t < 0.4) {
+      const g = ctx.createRadialGradient(x, y, r * 0.9, x, y, r * 1.45);
+      g.addColorStop(0, rgba(c2, 0.9));
+      g.addColorStop(1, rgba(c2, 0));
+      ctx.fillStyle = g;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 1.45, 0, TAU);
+      ctx.fill();
+      disc(ctx, x, y, r, c1);
+    } else if (t < 0.65) {
+      disc(ctx, x, y, r, c1);
+      ctx.strokeStyle = c2;
+      ctx.lineWidth = r * 0.12;
+      ctx.beginPath();
+      ctx.arc(x, y, r * 1.06, 0, TAU);
+      ctx.stroke();
+    } else if (t < 0.82) {
+      disc(ctx, x, y, r, c1);
+      disc(ctx, x, y, r * 0.55, c2);
+    } else {
+      disc(ctx, x, y, r, c1);
+    }
+    ctx.globalAlpha = 1;
+  }
+}, { thumb: { scale: 1.2 } });
+
+def('colorstudy', 'Color Study', 'art', (ctx, o) => {
+  const { rng } = o;
+  const c = 165 * o.scale;
+  const rings = 2 + Math.round(o.detail * 0.3);
+  const wob = rng() < 0.75 ? o.rand(0.012, 0.028) : 0;
+  const pal = o.colors;
+  const L = pal.length;
+  const cols = Math.ceil(o.W / c) + 1;
+  const rows = Math.ceil(o.H / c) + 1;
+  const ox = (o.W - (cols - 1) * c) / 2 - c / 2;
+  const oy = (o.H - (rows - 1) * c) / 2 - c / 2;
+  const cells = new Map();
+  const add = (col) => cells.get(col) || cells.set(col, new Path2D()).get(col);
+  const bgOf = (i, j) => pal[Math.floor(o.hash(i, j, 0) * L)];
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) add(bgOf(i, j)).rect(ox + i * c, oy + j * c, c, c);
+  for (const [col, p] of cells) {
+    ctx.fillStyle = col;
+    ctx.fill(p);
+  }
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const h = (q) => o.hash(i, j, q);
+      let prev = bgOf(i, j);
+      let cx = ox + i * c + c / 2 + (h(1) - 0.5) * c * 0.08;
+      let cy = oy + j * c + c / 2 + (h(2) - 0.5) * c * 0.08;
+      let r = c * (0.36 + h(3) * 0.07);
+      for (let q = 0; q < rings; q++) {
+        const choices = pal.filter((x) => x !== prev);
+        const colr = choices[Math.floor(h(10 + q) * choices.length)];
+        const p = new Path2D();
+        wobbleCircle(p, cx, cy, r, wob, [h(20 + q) * TAU, h(30 + q) * TAU, h(40 + q) * TAU]);
+        ctx.fillStyle = colr;
+        ctx.fill(p);
+        prev = colr;
+        const step = r / (rings - q + 0.6);
+        r -= step * (0.75 + h(50 + q) * 0.5);
+        cx += (h(60 + q) - 0.5) * step * 0.5;
+        cy += (h(70 + q) - 0.5) * step * 0.5;
+      }
+    }
+  }
+}, { thumb: { scale: 1.6 } });
+
+def('destijl', 'De Stijl Grid', 'art', (ctx, o) => {
+  const { rng } = o;
+  const k = o.scale;
+  const lw = 16 * k;
+  const minC = 64 * k;
+  const line = contrastInk(o);
+  const fills = others(o.ink, line);
+  const boogie = rng() < 0.3 && fills.length >= 2;
+  const fillP = 0.16 + o.detail * 0.025;
+  const splitBias = 0.62 + o.detail * 0.04;
+  const lines = [];
+  const leaves = [];
+  const split = (x, y, w, h, depth) => {
+    const canV = w > 2 * minC;
+    const canH = h > 2 * minC;
+    const p = depth < 3 ? 1 : splitBias - (depth - 3) * 0.14;
+    if ((!canV && !canH) || rng() >= p) {
+      leaves.push([x, y, w, h]);
+      return;
+    }
+    const vertical = canV && (!canH || rng() < w / (w + h) + 0.08);
+    if (vertical) {
+      const t = x + minC + rng() * (w - 2 * minC);
+      lines.push([t - lw / 2, y, lw, h]);
+      split(x, y, t - x, h, depth + 1);
+      split(t, y, x + w - t, h, depth + 1);
+    } else {
+      const t = y + minC + rng() * (h - 2 * minC);
+      lines.push([x, t - lw / 2, w, lw]);
+      split(x, y, w, t - y, depth + 1);
+      split(x, t, w, y + h - t, depth + 1);
+    }
+  };
+  split(-lw, -lw, o.W + 2 * lw, o.H + 2 * lw, 0);
+  const coloured = leaves.map(([, , w, h]) => rng() < fillP * (w * h < 6 * minC * minC ? 1.2 : 0.7));
+  // Always a few blocks of colour, however the dice fall.
+  const want = Math.min(leaves.length, 2 + Math.floor(o.detail / 4));
+  for (let q = 0; coloured.filter(Boolean).length < want && q < 50; q++) coloured[Math.floor(rng() * leaves.length)] = true;
+  leaves.forEach(([x, y, w, h], q) => {
+    if (!coloured[q]) return;
+    ctx.fillStyle = o.pick(fills.length ? fills : [line]);
+    ctx.fillRect(x, y, w, h);
+  });
+  if (!boogie) {
+    ctx.fillStyle = line;
+    for (const [x, y, w, h] of lines) ctx.fillRect(x, y, w, h);
+    return;
+  }
+  // Boogie-woogie: bright lines broken up by little blocks of colour.
+  const lineCol = fills.reduce((a, b) => (luminance(b) > luminance(a) ? b : a));
+  const dots = [...others(fills, lineCol), line];
+  ctx.fillStyle = lineCol;
+  for (const [x, y, w, h] of lines) ctx.fillRect(x, y, w, h);
+  for (const [x, y, w, h] of lines) {
+    const len = Math.max(w, h);
+    const horiz = w > h;
+    let t = lw * o.rand(0.5, 3);
+    while (t < len - lw) {
+      const run = lw * (rng() < 0.25 ? 2 : 1);
+      ctx.fillStyle = o.pick(dots);
+      if (horiz) ctx.fillRect(x + t, y, run, lw);
+      else ctx.fillRect(x, y + t, lw, run);
+      t += run + lw * o.rand(1.2, 4.5);
+    }
+  }
+});

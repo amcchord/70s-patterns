@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js';
+import { PATTERNS } from './patterns.js?v=2';
 
 export const MAX_SIDE = 8192;
 
@@ -42,21 +42,60 @@ export function randomSeed() {
 // ---------------------------------------------------------------- palettes
 // The first colour is the background; the rest are inks.
 
+export const PALETTE_GROUPS = [
+  ['70s', 'Seventies'],
+  ['art', 'Modern art'],
+  ['pop', 'Pop & op'],
+  ['soft', 'Soft'],
+];
+
+const P = (group, id, name, colors) => ({ group, id, name, colors });
+
 export const PALETTES = [
-  { id: 'harvest', name: 'Harvest Gold', colors: ['#f4e4c1', '#4a2511', '#a0451a', '#e07b24', '#f2b33d'] },
-  { id: 'tangerine', name: 'Tangerine Dream', colors: ['#fde3c0', '#6b1d0b', '#e8461e', '#f58a1f', '#ffb43b'] },
-  { id: 'avocado', name: 'Avocado Kitchen', colors: ['#efe6c8', '#4b5320', '#8a9a3b', '#d4a72c', '#7a4a1e'] },
-  { id: 'rustteal', name: 'Rust & Teal', colors: ['#f3e3c3', '#3b2414', '#c0561e', '#e89a2e', '#36a39c'] },
-  { id: 'sunset', name: 'Sunset Strip', colors: ['#f3e2c6', '#b8321f', '#e8763f', '#f2b28a', '#2e7a8c', '#1d4e5f'] },
-  { id: 'coffee', name: 'Coffee Shop', colors: ['#eadbc0', '#2d1a12', '#6e4329', '#b5763f', '#d9a35c'] },
-  { id: 'modlime', name: 'Mod Lime', colors: ['#f5ecd6', '#233d2b', '#8db33a', '#e9b632', '#d4572a'] },
-  { id: 'seafoam', name: 'Seafoam Motel', colors: ['#e9efe2', '#1f5f61', '#6fb3a6', '#e98a3c', '#f3c969'] },
-  { id: 'denim', name: 'Denim & Rust', colors: ['#f1e9da', '#1b2a49', '#3d6a9e', '#c4572c', '#e8b04a'] },
-  { id: 'disco', name: 'Disco Inferno', colors: ['#2a0f3b', '#ff2e93', '#ff8c1a', '#ffd21f', '#20c9e6', '#8a3ffc'] },
-  { id: 'psych', name: 'Psychedelic', colors: ['#1b1033', '#6b2fb3', '#e83f6f', '#ff9f1c', '#2ec4b6', '#f9e07f'] },
-  { id: 'bauhaus', name: 'Bauhaus Primary', colors: ['#f2ede1', '#e2312b', '#1f63b0', '#f6b419', '#151515'] },
-  { id: 'bauhausmuted', name: 'Bauhaus Muted', colors: ['#fbf0b4', '#4f1013', '#9e2a24', '#2f5c69', '#e4a43f'] },
-  { id: 'opart', name: 'Op Art', colors: ['#f7f5f0', '#141414'] },
+  P('70s', 'harvest', 'Harvest Gold', ['#f4e4c1', '#4a2511', '#a0451a', '#e07b24', '#f2b33d']),
+  P('70s', 'rainbow73', "Rainbow '73", ['#f5e9d0', '#5c2e14', '#b8321f', '#e3692b', '#f0a531', '#f6d04d', '#6f8f3a']),
+  P('70s', 'tangerine', 'Tangerine Dream', ['#fde3c0', '#6b1d0b', '#e8461e', '#f58a1f', '#ffb43b']),
+  P('70s', 'avocado', 'Avocado Kitchen', ['#efe6c8', '#4b5320', '#8a9a3b', '#d4a72c', '#7a4a1e']),
+  P('70s', 'rustteal', 'Rust & Teal', ['#f3e3c3', '#3b2414', '#c0561e', '#e89a2e', '#36a39c']),
+  P('70s', 'sunset', 'Sunset Strip', ['#f3e2c6', '#b8321f', '#e8763f', '#f2b28a', '#2e7a8c', '#1d4e5f']),
+  P('70s', 'mustardplum', 'Mustard & Plum', ['#f3e4c4', '#3a1730', '#7b2d54', '#c45a3b', '#e0a526', '#efcf6e']),
+  P('70s', 'polaroid', 'Polaroid', ['#f1e9d6', '#264d59', '#d65f3c', '#eea243', '#86b8b7']),
+  P('70s', 'coffee', 'Coffee Shop', ['#eadbc0', '#2d1a12', '#6e4329', '#b5763f', '#d9a35c']),
+  P('70s', 'shag', 'Shag Carpet', ['#ead9b5', '#4a2c15', '#8c5426', '#c88a36', '#6d7531']),
+  P('70s', 'modlime', 'Mod Lime', ['#f5ecd6', '#233d2b', '#8db33a', '#e9b632', '#d4572a']),
+  P('70s', 'lemonlime', 'Lemon & Lime', ['#fbf3d5', '#2f5d1f', '#7fb03b', '#d8d93c', '#f2b630']),
+  P('70s', 'seafoam', 'Seafoam Motel', ['#e9efe2', '#1f5f61', '#6fb3a6', '#e98a3c', '#f3c969']),
+  P('70s', 'peach', 'Peach Fuzz', ['#fde8d7', '#b84a32', '#ee8b60', '#f6b98a', '#3f6e66']),
+  P('70s', 'denim', 'Denim & Rust', ['#f1e9da', '#1b2a49', '#3d6a9e', '#c4572c', '#e8b04a']),
+  P('70s', 'cherrycola', 'Cherry Cola', ['#2b0f0c', '#7d1d1a', '#c43b2c', '#ee7d4b', '#f7c59a']),
+  P('70s', 'avonight', 'Avocado Night', ['#1d2312', '#4f6b1f', '#9aa83a', '#e2b33c', '#e57a33', '#f1e2bf']),
+
+  P('art', 'bauhaus', 'Bauhaus Primary', ['#f2ede1', '#e2312b', '#1f63b0', '#f6b419', '#151515']),
+  P('art', 'bauhausmuted', 'Bauhaus Muted', ['#fbf0b4', '#4f1013', '#9e2a24', '#2f5c69', '#e4a43f']),
+  P('art', 'kandinsky', 'Kandinsky', ['#efe6d2', '#161616', '#1f3d8c', '#c2362b', '#f0b928', '#6b3d8f', '#3c8c6e']),
+  P('art', 'constructivist', 'Constructivist', ['#eadfc6', '#131313', '#c8102e', '#8d8579']),
+  P('art', 'swiss', 'Swiss Poster', ['#f3f2ee', '#e2231a', '#1a1a1a', '#bcb8b1']),
+  P('art', 'midcentury', 'Mid-Century', ['#f2e9d6', '#2b2b2b', '#d4572a', '#2f7a8a', '#e8b23a', '#7c9a3d']),
+  P('art', 'cutouts', 'Paper Cut-Outs', ['#f5efe3', '#1f4fa0', '#e4572e', '#f3b61f', '#2c8c5a', '#141414']),
+  P('art', 'ochre', 'Ochre & Slate', ['#e9dcc0', '#3d4f5c', '#7a3b2e', '#c9713d', '#e7b25d', '#6f8a8a']),
+  P('art', 'memphis', 'Memphis', ['#fbf6ea', '#111111', '#ff5fa2', '#22c3b3', '#ffd23f', '#3d6cf4']),
+
+  P('pop', 'disco', 'Disco Inferno', ['#2a0f3b', '#ff2e93', '#ff8c1a', '#ffd21f', '#20c9e6', '#8a3ffc']),
+  P('pop', 'psych', 'Psychedelic', ['#1b1033', '#6b2fb3', '#e83f6f', '#ff9f1c', '#2ec4b6', '#f9e07f']),
+  P('pop', 'lava', 'Lava Lamp', ['#1a0d24', '#7b1fa2', '#e3245e', '#ff7a1a', '#ffc93c']),
+  P('pop', 'neon', 'Neon Night', ['#0e0b1f', '#ff2e88', '#00d1e0', '#8c52ff', '#f9f871']),
+  P('pop', 'mint', 'Mod Mint', ['#e6f2ea', '#11423f', '#2c9c86', '#f29e4c', '#e8566b']),
+  P('pop', 'pink', 'Pink Lounge', ['#fbe4e2', '#6d1a36', '#d43d6a', '#f58fa3', '#f6c453']),
+  P('pop', 'opart', 'Op Art', ['#f7f5f0', '#141414']),
+  P('pop', 'opred', 'Op Art Red', ['#f4f1ea', '#151515', '#c8202f']),
+  P('pop', 'cyanotype', 'Cyanotype', ['#123d6a', '#f1eee4', '#5f8fbf', '#2b6496']),
+
+  P('soft', 'sherbet', 'Sherbet', ['#fff3e4', '#ff8fa3', '#ffb84d', '#86c5da', '#b5d99c']),
+  P('soft', 'pastelbauhaus', 'Pastel Bauhaus', ['#f6efe1', '#3f3f46', '#ef9a8f', '#94b6dc', '#f2cf7a']),
+  P('soft', 'lavender', 'Lavender Haze', ['#f1ecf6', '#4b3a6e', '#9a84c4', '#e7a3b6', '#f3d38a']),
+  P('soft', 'sage', 'Sage & Clay', ['#eef0e4', '#4f5d43', '#9aab7c', '#cf7f5f', '#efc98a']),
+  P('soft', 'desert', 'Desert Modern', ['#f2e7d5', '#3e4a43', '#c8693f', '#e3a66f', '#93a27f']),
+  P('soft', 'terracotta', 'Terracotta', ['#f5e8dc', '#2f4858', '#8d3b2b', '#c9674a', '#e8a97f']),
 ];
 
 export const PALETTES_BY_ID = Object.fromEntries(PALETTES.map((p) => [p.id, p]));

@@ -1,7 +1,7 @@
 import {
-  PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, MAX_SIDE,
+  PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed,
-} from './core.js?v=1';
+} from './core.js?v=2';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -144,7 +144,7 @@ const thumbs = new Map();
 
 function buildStyles() {
   const root = $('styles');
-  const groups = [['70s', '1970s'], ['geo', 'Bauhaus & geometric']];
+  const groups = [['70s', '1970s'], ['geo', 'Bauhaus, geometric & op'], ['art', 'Art & abstract']];
   for (const [family, title] of groups) {
     const h = document.createElement('h3');
     h.textContent = title;
@@ -157,8 +157,8 @@ function buildStyles() {
       b.dataset.id = p.id;
       b.setAttribute('aria-pressed', 'false');
       const c = document.createElement('canvas');
-      c.width = 150 * dpr();
-      c.height = 100 * dpr();
+      c.width = 132 * dpr();
+      c.height = 88 * dpr();
       const label = document.createElement('span');
       label.textContent = p.name;
       b.append(c, label);
@@ -186,7 +186,8 @@ function drawThumbs() {
     const id = ids.shift();
     if (!id) return;
     const c = thumbs.get(id);
-    renderPattern(c.getContext('2d'), { style: id, seed: 'groovy', colors: state.colors, scale: 1.7, detail: 5, rotation: 0 }, c.width, c.height);
+    const t = PATTERNS_BY_ID[id].thumb || {};
+    renderPattern(c.getContext('2d'), { style: id, seed: t.seed || 'groovy', colors: state.colors, scale: t.scale || 1.7, detail: 5, rotation: 0 }, c.width, c.height);
     requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
@@ -194,12 +195,32 @@ function drawThumbs() {
 
 // ---------------------------------------------------------------- palettes & colours
 
+let paletteTab = '';
+let shownPalette = '';
+
+function showPaletteGroup(group) {
+  paletteTab = group;
+  for (const t of document.querySelectorAll('.tab')) t.setAttribute('aria-selected', String(t.dataset.group === group));
+  for (const b of document.querySelectorAll('.palette')) b.hidden = b.dataset.group !== group;
+}
+
 function buildPalettes() {
+  const tabs = $('paletteTabs');
+  for (const [group, title] of PALETTE_GROUPS) {
+    const t = document.createElement('button');
+    t.className = 'tab';
+    t.dataset.group = group;
+    t.setAttribute('role', 'tab');
+    t.textContent = title;
+    t.addEventListener('click', () => showPaletteGroup(group));
+    tabs.append(t);
+  }
   const root = $('palettes');
   for (const p of PALETTES) {
     const b = document.createElement('button');
     b.className = 'palette';
     b.dataset.id = p.id;
+    b.dataset.group = p.group;
     b.title = p.name;
     b.setAttribute('aria-label', p.name);
     const strip = document.createElement('span');
@@ -280,6 +301,13 @@ function buildSizes() {
 function syncControls({ chips = true } = {}) {
   for (const b of document.querySelectorAll('.style')) b.setAttribute('aria-pressed', String(b.dataset.id === state.style));
   for (const b of document.querySelectorAll('.palette')) b.setAttribute('aria-pressed', String(b.dataset.id === state.palette));
+  // Follow the palette to its tab when it changes from elsewhere (surprise, back, a link).
+  if (state.palette !== shownPalette) {
+    shownPalette = state.palette;
+    const group = PALETTES_BY_ID[state.palette]?.group;
+    if (group && group !== paletteTab) showPaletteGroup(group);
+    else if (!paletteTab) showPaletteGroup(PALETTE_GROUPS[0][0]);
+  }
   if (chips) buildChips();
   $('seed').value = state.seed;
   for (const id of ['scale', 'detail', 'rotation']) {
