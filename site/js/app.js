@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=21';
+} from './core.js?v=22';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -766,6 +766,22 @@ function bind() {
   });
   window.addEventListener('resize', () => {
     if (!$('fs').hidden) drawFullscreen();
+  });
+  // Copy a 2048 px image for pasting into a design tool or document.
+  $('copyImage').addEventListener('click', async () => {
+    const [ow, oh] = outputSize();
+    const k = 2048 / Math.max(ow, oh);
+    const w = Math.max(16, Math.round(ow * k));
+    const h = Math.max(16, Math.round(oh * k));
+    try {
+      if (!navigator.clipboard?.write || typeof ClipboardItem !== 'function') throw new Error('unsupported');
+      // Hand the clipboard a promise so the copy keeps the click's permission while it renders.
+      await navigator.clipboard.write([new ClipboardItem({ 'image/png': exportPNG(structuredClone(state), w, h) })]);
+      toast(`Image copied (${w} × ${h})`);
+    } catch (err) {
+      console.error(err);
+      toast('This browser would not copy the image. Use Download PNG instead.');
+    }
   });
   $('share').addEventListener('click', async () => {
     try {
