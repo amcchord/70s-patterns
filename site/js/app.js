@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE, separateColors,
-} from './core.js?v=46';
+} from './core.js?v=47';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -629,13 +629,13 @@ function surprise() {
   const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
   const gen = rnd(PATTERNS);
   state.style = gen.id;
+  // Lean toward palettes that suit the style: op art loves black and white.
+  const group = rnd(AFFINITY[gen.family]);
   if (Math.random() < 0.2) {
     state.palette = 'custom';
-    state.colors = inventPalette();
+    state.colors = inventPalette(Math.random, group);
   } else {
-    // Lean toward palettes that suit the style: op art loves black and white.
     const op = OP_STYLES.has(gen.id) && Math.random() < 0.35;
-    const group = rnd(AFFINITY[gen.family]);
     const pool = op ? PALETTES.filter((p) => ['opart', 'opred', 'cyanotype'].includes(p.id)) : PALETTES.filter((p) => p.group === group);
     const pal = rnd(pool);
     state.palette = pal.id;
