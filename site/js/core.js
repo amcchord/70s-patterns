@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=3';
+import { PATTERNS } from './patterns.js?v=4';
 
 export const MAX_SIDE = 8192;
 
@@ -40,7 +40,16 @@ export function randomSeed() {
 }
 
 // ---------------------------------------------------------------- palettes
-// The first colour is the background; the rest are inks.
+// The first colour is the background; the rest are inks, in the order banded
+// styles cycle through them. Rules every palette follows:
+//  - Grounds are paper or ink: warm off-whites or deep inks, never pure white or black.
+//  - A value structure: a dark anchor, mid tones and a light accent, so the
+//    pattern still reads in greyscale.
+//  - Pigment-true hues, drawn from the period or artist each palette names,
+//    rather than screen primaries.
+//  - Neighbours separate: at least ~10 OKLab ΔE between inks and ~12 to the ground.
+// Seventies palettes run as gradients, the way 70s bands were printed; modern
+// palettes alternate warm and cool so neighbouring shapes pop.
 
 export const PALETTE_GROUPS = [
   ['70s', 'Seventies'],
@@ -52,49 +61,55 @@ export const PALETTE_GROUPS = [
 const P = (group, id, name, colors) => ({ group, id, name, colors });
 
 export const PALETTES = [
+  // Seventies: appliance enamels, shag carpet, sunset posters and instant film.
   P('70s', 'harvest', 'Harvest Gold', ['#f4e4c1', '#4a2511', '#a0451a', '#e07b24', '#f2b33d']),
-  P('70s', 'rainbow73', "Rainbow '73", ['#f5e9d0', '#5c2e14', '#b8321f', '#e3692b', '#f0a531', '#f6d04d', '#6f8f3a']),
-  P('70s', 'tangerine', 'Tangerine Dream', ['#fde3c0', '#6b1d0b', '#e8461e', '#f58a1f', '#ffb43b']),
-  P('70s', 'avocado', 'Avocado Kitchen', ['#efe6c8', '#4b5320', '#8a9a3b', '#d4a72c', '#7a4a1e']),
-  P('70s', 'rustteal', 'Rust & Teal', ['#f3e3c3', '#3b2414', '#c0561e', '#e89a2e', '#36a39c']),
-  P('70s', 'sunset', 'Sunset Strip', ['#f3e2c6', '#b8321f', '#e8763f', '#f2b28a', '#2e7a8c', '#1d4e5f']),
-  P('70s', 'mustardplum', 'Mustard & Plum', ['#f3e4c4', '#3a1730', '#7b2d54', '#c45a3b', '#e0a526', '#efcf6e']),
-  P('70s', 'polaroid', 'Polaroid', ['#f1e9d6', '#264d59', '#d65f3c', '#eea243', '#86b8b7']),
+  P('70s', 'rainbow73', "Rainbow '73", ['#f4e8cf', '#4f2a14', '#b0361f', '#df6a2a', '#e99a2f', '#ecd36a', '#6e8a35']),
+  P('70s', 'tangerine', 'Tangerine Dream', ['#f8e6c8', '#5e1a0e', '#cf4320', '#ec7d22', '#f5ad3a']),
+  P('70s', 'avocado', "Kitchen '74", ['#efe4c9', '#3d4719', '#7b8933', '#d5a131', '#a6592a']),
+  P('70s', 'rustteal', 'Rust & Teal', ['#f2e2c4', '#33231a', '#b8501e', '#e2952f', '#2e8a84']),
+  P('70s', 'sunset', 'Sunset Strip', ['#f3e2c6', '#1d4e5f', '#2e7a8c', '#b8321f', '#e8763f', '#eea37a']),
+  P('70s', 'mustardplum', 'Mustard & Plum', ['#f5ead5', '#341429', '#74294f', '#bb5437', '#dca02a']),
+  P('70s', 'polaroid', 'Instant Film', ['#efe6d2', '#2c5b63', '#c8553d', '#e3a447', '#98c0bb']),
   P('70s', 'coffee', 'Coffee Shop', ['#eadbc0', '#2d1a12', '#6e4329', '#b5763f', '#d9a35c']),
-  P('70s', 'shag', 'Shag Carpet', ['#ead9b5', '#4a2c15', '#8c5426', '#c88a36', '#6d7531']),
+  P('70s', 'babyblue', 'Brown & Baby Blue', ['#f4e7d0', '#3b2416', '#7c4c2c', '#b98a5c', '#6f9cbf', '#adcbe0']),
   P('70s', 'modlime', 'Mod Lime', ['#f5ecd6', '#233d2b', '#8db33a', '#e9b632', '#d4572a']),
-  P('70s', 'lemonlime', 'Lemon & Lime', ['#fbf3d5', '#2f5d1f', '#7fb03b', '#d8d93c', '#f2b630']),
+  P('70s', 'riviera', "Riviera '71", ['#f7ecdd', '#4a1d4c', '#bf2c6b', '#ec5b2d', '#f29b2c']),
   P('70s', 'seafoam', 'Seafoam Motel', ['#e9efe2', '#1f5f61', '#6fb3a6', '#e98a3c', '#f3c969']),
-  P('70s', 'peach', 'Peach Fuzz', ['#fde8d7', '#b84a32', '#ee8b60', '#f6b98a', '#3f6e66']),
+  P('70s', 'peach', 'Peaches & Cream', ['#fbebdc', '#3b5d57', '#b4472f', '#e9845c', '#f2b48a']),
   P('70s', 'denim', 'Denim & Rust', ['#f1e9da', '#1b2a49', '#3d6a9e', '#c4572c', '#e8b04a']),
   P('70s', 'cherrycola', 'Cherry Cola', ['#2b0f0c', '#7d1d1a', '#c43b2c', '#ee7d4b', '#f7c59a']),
   P('70s', 'avonight', 'Avocado Night', ['#1d2312', '#4f6b1f', '#9aa83a', '#e2b33c', '#e57a33', '#f1e2bf']),
 
-  P('art', 'bauhaus', 'Bauhaus Primary', ['#f2ede1', '#e2312b', '#1f63b0', '#f6b419', '#151515']),
+  // Modern art: the pigments of the painters and schools the styles are named after.
+  P('art', 'bauhaus', 'Bauhaus Primary', ['#efe8d8', '#d13b28', '#22509c', '#efb52e', '#1c1b19']),
   P('art', 'bauhausmuted', 'Bauhaus Muted', ['#fbf0b4', '#4f1013', '#9e2a24', '#2f5c69', '#e4a43f']),
-  P('art', 'kandinsky', 'Kandinsky', ['#efe6d2', '#161616', '#1f3d8c', '#c2362b', '#f0b928', '#6b3d8f', '#3c8c6e']),
-  P('art', 'constructivist', 'Constructivist', ['#eadfc6', '#131313', '#c8102e', '#8d8579']),
-  P('art', 'swiss', 'Swiss Poster', ['#f3f2ee', '#e2231a', '#1a1a1a', '#bcb8b1']),
-  P('art', 'midcentury', 'Mid-Century', ['#f2e9d6', '#2b2b2b', '#d4572a', '#2f7a8a', '#e8b23a', '#7c9a3d']),
-  P('art', 'cutouts', 'Paper Cut-Outs', ['#f5efe3', '#1f4fa0', '#e4572e', '#f3b61f', '#2c8c5a', '#141414']),
-  P('art', 'ochre', 'Ochre & Slate', ['#e9dcc0', '#3d4f5c', '#7a3b2e', '#c9713d', '#e7b25d', '#6f8a8a']),
-  P('art', 'memphis', 'Memphis', ['#fbf6ea', '#111111', '#ff5fa2', '#22c3b3', '#ffd23f', '#3d6cf4']),
+  P('art', 'destijl', 'De Stijl', ['#ece8de', '#1b1a1a', '#c9322a', '#efc52f', '#1f3f91', '#bab5aa']),
+  P('art', 'kandinsky', 'Kandinsky', ['#ece2cb', '#1a1918', '#25408f', '#c43a2c', '#eebc33', '#6a3f8c', '#2f7f66', '#9ebfd4']),
+  P('art', 'cutouts', 'Paper Cut-Outs', ['#f3ede0', '#2448a0', '#e5603e', '#f3c42e', '#3d8b4e', '#c8437d', '#161616']),
+  P('art', 'constructivist', 'Constructivist', ['#e8dcc0', '#151413', '#c42126', '#a8916d']),
+  P('art', 'swiss', 'Swiss Poster', ['#f2f1ec', '#dd2a1b', '#1a1a1a', '#c4c0b8']),
+  P('art', 'midcentury', 'Mid-Century', ['#f1e8d5', '#2c2b29', '#d2552c', '#2d7286', '#e1ad37', '#7d8f3c']),
+  P('art', 'ochre', 'Ochre & Slate', ['#e8dbbf', '#3a4a57', '#7b3529', '#c46a3c', '#dcab55', '#6f8b88']),
+  P('art', 'memphis', 'Memphis', ['#f7f3ea', '#141414', '#f29ea4', '#2c5fd9', '#7fd1cc', '#f7d046']),
 
-  P('pop', 'disco', 'Disco Inferno', ['#2a0f3b', '#ff2e93', '#ff8c1a', '#ffd21f', '#20c9e6', '#8a3ffc']),
-  P('pop', 'psych', 'Psychedelic', ['#1b1033', '#6b2fb3', '#e83f6f', '#ff9f1c', '#2ec4b6', '#f9e07f']),
+  // Pop & op: disco and lava lamps, print-shop inks, and black-and-white optics.
+  P('pop', 'disco', 'Disco Inferno', ['#24102f', '#f0388a', '#f57f20', '#f9cf2e', '#2fb8d6', '#7f48d8']),
+  P('pop', 'psych', 'Psychedelic', ['#1d1233', '#5f2ca0', '#d93d6c', '#f39a24', '#3ab5a6', '#f2dc84']),
   P('pop', 'lava', 'Lava Lamp', ['#1a0d24', '#7b1fa2', '#e3245e', '#ff7a1a', '#ffc93c']),
-  P('pop', 'neon', 'Neon Night', ['#0e0b1f', '#ff2e88', '#00d1e0', '#8c52ff', '#f9f871']),
+  P('pop', 'zine', 'Zine Inks', ['#f2eee6', '#3d5588', '#ff48b0', '#ffb511', '#00838a', '#f15060']),
   P('pop', 'mint', 'Mod Mint', ['#e6f2ea', '#11423f', '#2c9c86', '#f29e4c', '#e8566b']),
   P('pop', 'pink', 'Pink Lounge', ['#fbe4e2', '#6d1a36', '#d43d6a', '#f58fa3', '#f6c453']),
   P('pop', 'opart', 'Op Art', ['#f7f5f0', '#141414']),
   P('pop', 'opred', 'Op Art Red', ['#f4f1ea', '#151515', '#c8202f']),
-  P('pop', 'cyanotype', 'Cyanotype', ['#123d6a', '#f1eee4', '#5f8fbf', '#2b6496']),
+  P('pop', 'cyanotype', 'Cyanotype', ['#183f6b', '#f2eee3', '#6f97c4', '#091d35']),
 
-  P('soft', 'sherbet', 'Sherbet', ['#fff3e4', '#ff8fa3', '#ffb84d', '#86c5da', '#b5d99c']),
+  // Soft: chalky, dusty and pastel, but always with a dark anchor.
+  P('soft', 'morandi', 'Morandi', ['#ebe5d8', '#55504a', '#7b8b91', '#b5a88d', '#ad7c66', '#d3c19b']),
+  P('soft', 'sherbet', 'Sherbet', ['#fdf3e5', '#3d5a6c', '#e86f8a', '#f6a84c', '#7fbcd2', '#a9d08e']),
   P('soft', 'pastelbauhaus', 'Pastel Bauhaus', ['#f6efe1', '#3f3f46', '#ef9a8f', '#94b6dc', '#f2cf7a']),
-  P('soft', 'lavender', 'Lavender Haze', ['#f1ecf6', '#4b3a6e', '#9a84c4', '#e7a3b6', '#f3d38a']),
-  P('soft', 'sage', 'Sage & Clay', ['#eef0e4', '#4f5d43', '#9aab7c', '#cf7f5f', '#efc98a']),
-  P('soft', 'desert', 'Desert Modern', ['#f2e7d5', '#3e4a43', '#c8693f', '#e3a66f', '#93a27f']),
+  P('soft', 'lavender', 'Lavender Haze', ['#f3eef6', '#4b3a6e', '#9a84c4', '#e19aae', '#eac46e']),
+  P('soft', 'sage', 'Sage & Clay', ['#f0f1e7', '#4a5840', '#93a675', '#cb7a59', '#e8bf7c']),
+  P('soft', 'desert', 'Palm Springs', ['#f5ecdd', '#294a52', '#df8566', '#79c0bd', '#e8c178']),
   P('soft', 'terracotta', 'Terracotta', ['#f5e8dc', '#2f4858', '#8d3b2b', '#c9674a', '#e8a97f']),
 ];
 
@@ -129,41 +144,138 @@ function oklchToHex(L, C, hDeg) {
   return '#808080';
 }
 
-export function inventPalette(rand = Math.random) {
+function hexToOklab(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const [r, g, b] = [(n >> 16) & 255, (n >> 8) & 255, n & 255].map((v) => lin(v / 255));
+  const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+  const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+  const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+  return [
+    0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+    1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+    0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+  ];
+}
+
+function hexToOklch(hex) {
+  const [L, a, b] = hexToOklab(hex);
+  return [L, Math.hypot(a, b), ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360];
+}
+
+// Perceptual distance, scaled so ~2 is just noticeable and 10+ reads as a clear step.
+export function deltaE(x, y) {
+  const A = hexToOklab(x);
+  const B = hexToOklab(y);
+  return 100 * Math.hypot(A[0] - B[0], A[1] - B[1], A[2] - B[2]);
+}
+
+// Every ink must stand apart from every other ink and from the ground.
+function separated(colors, inkGap = 10, groundGap = 13) {
+  for (let i = 1; i < colors.length; i++) {
+    if (deltaE(colors[i], colors[0]) < groundGap) return false;
+    for (let j = i + 1; j < colors.length; j++) if (deltaE(colors[i], colors[j]) < inkGap) return false;
+  }
+  return true;
+}
+
+// Pigments drift as they lighten or darken: light tints lean toward yellow,
+// deep shades toward red-brown. A touch of that keeps invented colours from
+// looking like screen swatches.
+function pigmentHue(h, L) {
+  const target = L > 0.6 ? 92 : 28;
+  const amount = Math.min(0.35, Math.abs(L - 0.6) * 0.6);
+  const diff = ((target - h + 540) % 360) - 180;
+  return (h + diff * amount + 360) % 360;
+}
+
+// Roughly how saturated artists' pigments get at each hue (OKLCH chroma):
+// cadmiums and ochres run strong, greens and cyans much less so.
+const PIGMENT_CAP = [[0, 0.16], [40, 0.17], [85, 0.16], [115, 0.13], [150, 0.1], [205, 0.095], [250, 0.13], [295, 0.13], [335, 0.15], [360, 0.16]];
+
+function pigmentChroma(C, h, L) {
+  let cap = 0.16;
+  for (let k = 1; k < PIGMENT_CAP.length; k++) {
+    const [h1, c1] = PIGMENT_CAP[k];
+    const [h0, c0] = PIGMENT_CAP[k - 1];
+    if (h <= h1) {
+      cap = c0 + ((c1 - c0) * (h - h0)) / (h1 - h0);
+      break;
+    }
+  }
+  if (L > 0.82) cap *= 0.7;
+  else if (L < 0.32) cap *= 0.75;
+  return Math.min(C, cap);
+}
+
+function ink(L, C, h) {
+  const hue = pigmentHue(h, L);
+  return oklchToHex(L, pigmentChroma(C, hue, L), hue);
+}
+
+function paper(rand) {
+  return oklchToHex(0.935 + rand() * 0.03, 0.018 + rand() * 0.02, 78 + rand() * 18);
+}
+
+// Take a curated palette and turn its hues, keeping its value structure.
+function remixPalette(rand) {
+  const pool = PALETTES.filter((p) => p.colors.length >= 4);
+  const src = pool[Math.floor(rand() * pool.length)].colors;
+  const turn = 30 + rand() * 300;
+  const chroma = 0.85 + rand() * 0.25;
+  const [L0, C0, h0] = hexToOklch(src[0]);
+  // Light grounds stay paper-coloured; dark grounds turn with the inks.
+  const ground = L0 > 0.6 ? paper(rand) : oklchToHex(L0, C0, (h0 + turn) % 360);
+  const inks = src.slice(1).map((c) => {
+    const [L, C, h] = hexToOklch(c);
+    // Near-neutrals (blacks, greys) stay neutral rather than turning into odd tints.
+    return C < 0.03 ? c : ink(L, C * chroma, (h + turn) % 360);
+  });
+  return [ground, ...inks];
+}
+
+// Build a palette from scratch on a hue scheme, with a deliberate value ladder.
+function composePalette(rand) {
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   const r = (a, b) => a + rand() * (b - a);
-  const scheme = pick(['analogous', 'complement', 'triad', 'split', 'retro', 'earthy']);
+  const scheme = pick(['analogous', 'complement', 'split', 'retro', 'earthy', 'triad']);
   let h0 = rand() * 360;
   let hues;
-  if (scheme === 'analogous') hues = [h0, h0 + 28, h0 + 56, h0 - 26];
-  else if (scheme === 'complement') hues = [h0, h0 + 18, h0 + 180, h0 + 200];
-  else if (scheme === 'triad') hues = [h0, h0 + 120, h0 + 240, h0 + 25];
-  else if (scheme === 'split') hues = [h0, h0 + 150, h0 + 210, h0 + 30];
+  if (scheme === 'analogous') hues = [h0, h0 + 30, h0 + 60, h0 - 25];
+  else if (scheme === 'complement') hues = [h0, h0 + 20, h0 + 180, h0 + 200];
+  else if (scheme === 'split') hues = [h0, h0 + 150, h0 + 210, h0 + 25];
+  else if (scheme === 'triad') hues = [h0, h0 + 120, h0 + 240, h0 + 20];
   else if (scheme === 'retro') {
-    h0 = r(30, 85); // oranges, golds and browns with a cool accent
-    hues = [h0, h0 + 20, h0 - 18, r(185, 215)];
+    h0 = r(35, 80); // ochres, oranges and browns with one cool accent
+    hues = [h0, h0 - 20, h0 + 22, r(190, 220)];
   } else {
-    h0 = r(40, 120);
-    hues = [h0, h0 + 30, h0 - 25, h0 + 70];
+    h0 = r(55, 115);
+    hues = [h0, h0 - 30, h0 + 35, h0 + 80];
   }
-  const muted = scheme === 'earthy' ? 0.55 : 1;
-  const dark = rand() < 0.2;
+  const muted = scheme === 'earthy' ? 0.6 : r(0.8, 1);
+  const dark = rand() < 0.18;
   const n = 3 + Math.floor(rand() * 3);
-  const bg = dark ? oklchToHex(r(0.17, 0.24), r(0.02, 0.06), hues[2] + 180) : oklchToHex(r(0.93, 0.97), r(0.015, 0.04), pick([h0, 75, 85]));
-  // Spread lightness so each palette has a dark anchor, mid tones and a light accent.
-  const Ls = dark ? [0.86, 0.74, 0.64, 0.55, 0.47] : [0.3, 0.52, 0.64, 0.74, 0.83];
+  const ground = dark ? oklchToHex(r(0.18, 0.24), r(0.025, 0.06), (hues[2] + 180) % 360) : paper(rand);
+  const ladder = dark ? [0.88, 0.76, 0.66, 0.56, 0.48] : [0.28, 0.5, 0.62, 0.72, 0.82];
   const inks = [];
   for (let k = 0; k < n; k++) {
-    const L = Ls[Math.round((k * (Ls.length - 1)) / Math.max(1, n - 1))] + r(-0.03, 0.03);
-    const C = (L < 0.4 ? r(0.05, 0.1) : L > 0.78 ? r(0.05, 0.11) : r(0.1, 0.17)) * muted;
-    inks.push(oklchToHex(L, C, (hues[k % hues.length] + r(-8, 8) + 360) % 360));
+    const L = ladder[Math.round((k * (ladder.length - 1)) / Math.max(1, n - 1))] + r(-0.025, 0.025);
+    // Chroma peaks in the mid tones, as it does for real pigments.
+    const C = (L < 0.4 ? r(0.04, 0.09) : L > 0.78 ? r(0.05, 0.1) : r(0.1, 0.16)) * muted;
+    inks.push(ink(L, C, (hues[k % hues.length] + r(-8, 8) + 360) % 360));
   }
-  // Mix the order so the darkest ink is not always first.
-  for (let k = inks.length - 1; k > 0; k--) {
-    const j = Math.floor(rand() * (k + 1));
-    [inks[k], inks[j]] = [inks[j], inks[k]];
+  // Half the time the dark anchor is a near-neutral: warm black or charcoal.
+  if (!dark && rand() < 0.5) inks[0] = oklchToHex(r(0.22, 0.3), r(0.01, 0.035), r(30, 80));
+  return [ground, ...inks];
+}
+
+export function inventPalette(rand = Math.random) {
+  let pal;
+  for (let attempt = 0; attempt < 16; attempt++) {
+    pal = rand() < 0.5 ? remixPalette(rand) : composePalette(rand);
+    if (separated(pal)) return pal;
   }
-  return [bg, ...inks];
+  return pal;
 }
 
 export const PALETTES_BY_ID = Object.fromEntries(PALETTES.map((p) => [p.id, p]));

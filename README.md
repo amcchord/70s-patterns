@@ -2,7 +2,7 @@
 
 ![Groovy Pattern Machine](site/og.png)
 
-Generate 1970s, Bauhaus and geometric patterns on demand, then download them as PNGs up to 8K (8192 × 8192).
+Generate 1970s, Bauhaus, op-art and abstract patterns on demand, then download them as PNGs up to 8K (8192 × 8192).
 
 **Live:** https://mcchord.net/patterns/
 
@@ -10,21 +10,50 @@ Everything runs in the browser. There is no server-side code, no build step and 
 
 ## Features
 
-- **14 pattern styles**
-  - *1970s:* Groovy Waves, Rainbow Scales, Petal Drops, Loop Chain, Ogee Onions, Diamond Nest, Liquid Groove, Flower Power, Supergraphic, Mod Targets
-  - *Bauhaus & geometric:* Bauhaus Blocks, Kaleido Quilt, Chevron Op, Truchet Rings
-- **14 curated palettes:** Harvest Gold, Avocado Kitchen, Disco Inferno, Bauhaus Primary and others. You can edit any colour, add or remove colours, or shuffle their order. The first colour is the background.
+- **26 pattern styles in three families**
+  - *1970s:* Groovy Waves, Rainbow Scales, Petal Drops, Loop Chain, Ogee Onions, Diamond Nest, Liquid Groove, Flower Power, Supergraphic, Mod Targets, Rainbow Tiles, Sunrise
+  - *Bauhaus, geometric & op:* Bauhaus Blocks, Kaleido Quilt, Chevron Op, Truchet Rings, Tumbling Blocks, Op Squares, Op Bulge, Op Lines
+  - *Art & abstract:* Composition, Floating Circles and Color Study (after Kandinsky), De Stijl Grid (after Mondrian), Cut-Outs (after Matisse), Atomic Age
+- **43 curated palettes in four groups:** Seventies, Modern art, Pop & op, and Soft. You can edit any colour, add or remove colours, or shuffle their order. The first colour is the background.
+- **Invent palette** makes up a new palette. Half the time it remixes a curated palette, turning its hues in OKLCH while keeping its value structure. The rest of the time it composes one from pigment rules. Results whose colours sit too close together are rejected and tried again.
+
+## Palettes
+
+Colour carries these patterns, so every curated palette follows the same rules:
+
+- **Real references.** Each palette is drawn from the period or artist it names, for example 1970s appliance enamels (*Kitchen '74*), Mondrian's red, yellow and blue (*De Stijl*), Kandinsky's *Composition VIII* (*Kandinsky*), Matisse's gouache cut-outs (*Paper Cut-Outs*), Memphis laminates and stencil-printer inks (*Zine Inks*).
+- **Paper or ink grounds.** Backgrounds are warm off-whites or deep inks, never pure white or black.
+- **A value structure.** Every palette has a dark anchor, mid tones and a light accent, so a pattern still reads in greyscale.
+- **Pigment-true hues.** Reds lean vermilion or crimson, blues ultramarine or cobalt, and yellows cadmium or ochre, rather than screen primaries.
+- **Neighbours separate.** Inks are at least about 10 ΔE apart in OKLab, and about 12 from the ground, so bands never blur together.
+- **Order matters.** Banded styles cycle through inks in order. Seventies palettes therefore run as gradients, the way 70s bands were printed, while modern palettes alternate warm and cool.
+
+Invented palettes follow the same rules. Chroma is capped by hue at roughly what real pigments reach, so greens and cyans never go neon. Light tints lean slightly toward yellow and deep shades toward red-brown, as pigments do.
+- **Variations.** Under the preview you see six other seeds of the current style. Click one to swap it in.
+- **Your shelf.** *♥ Save* keeps favourite patterns in this browser, so you can come back to them.
 - **Scale, Detail and Rotate** sliders.
 - **Seeded and shareable.** The URL hash holds the full state (style, colours, seed, sliders, size), so a link reproduces the exact pattern. *Copy link* puts it on the clipboard.
 - **PNG export up to 8192 px per side:** 8K UHD, 8K portrait, 8K square, 5K, 4K, phone and tablet wallpapers, your own screen, or a custom size.
-- Keyboard shortcuts: <kbd>Space</kbd> for a new pattern, <kbd>←</kbd> to go back, <kbd>S</kbd> for "surprise me".
+- **Keyboard shortcuts:**
+
+  | Key | Action |
+  | --- | --- |
+  | <kbd>Space</kbd> | New pattern |
+  | <kbd>←</kbd> | Back |
+  | <kbd>S</kbd> | Surprise me |
+  | <kbd>P</kbd> | Invent a palette |
+  | <kbd>[</kbd> <kbd>]</kbd> | Previous or next style |
 
 ## How it works
 
 - **Resolution independent.** Each pattern draws in a logical space whose shorter side is 1000 units. The same spec therefore looks identical in the preview and in an 8K export.
 - **Deterministic.** Global choices come from a seeded PRNG (`mulberry32`), drawn in a fixed order. Per-cell choices come from an integer hash of `(seed, i, j, k)`, so nothing depends on draw order or output size.
-- **Big exports without big canvases.** `exportPNG` renders the image in horizontal strips of about 4 megapixels. It applies the PNG "Sub" filter, then streams the rows through the browser's native zlib (`CompressionStream('deflate')`). It then writes the IHDR/IDAT/IEND chunks itself. Memory stays small and per-canvas size limits never apply, so 8K works on phones too. An 8K UHD export takes about 0.3 to 2 seconds on a laptop.
-- **Clean bands.** Most 70s styles stroke a single path several times, widest first, so the colour bands are truly parallel offset curves. Inset bands use the same trick inside a clip. Liquid Groove is computed per pixel from a domain-warped field, anti-aliased using the field's gradient.
+- **Big exports without big canvases.** `exportPNG` renders the image in horizontal strips of about 4 megapixels, on a software-rasterised canvas so every strip is drawn the same way. It applies the PNG "Sub" filter, then streams the rows through the browser's native zlib (`CompressionStream('deflate')`). It then writes the IHDR/IDAT/IEND chunks itself. Memory stays small and per-canvas size limits never apply, so 8K works on phones too. Most 8K UHD exports take under 2 seconds on a laptop.
+- **Clean edges.** Edges are drawn so anti-aliasing never leaves seams:
+  - Banded styles stroke one path several times, widest first, so the colour bands are truly parallel offset curves.
+  - Same-coloured neighbours (quilt triangles, rainbow tiles, cube faces) are filled as one path, so no hairlines appear between them.
+  - Op Lines draws filled ribbons rather than strokes, so tight crests never fold into pinholes.
+  - Liquid Groove and Op Bulge are computed per pixel. Each pixel is anti-aliased from its distance to the nearest edge, measured in the pattern's own coordinates.
 
 ## Run locally
 
@@ -38,7 +67,7 @@ Then open http://localhost:8771/. Opening `index.html` straight from disk won't 
 
 ## Add a pattern
 
-Add a `def(id, name, family, draw)` call in [`site/js/patterns.js`](site/js/patterns.js). `family` is `'70s'` or `'geo'`. `draw(ctx, o)` receives:
+Add a `def(id, name, family, draw)` call in [`site/js/patterns.js`](site/js/patterns.js), and a one-line description in its `ABOUT` table. `family` is `'70s'`, `'geo'` or `'art'`. `draw(ctx, o)` receives:
 
 | field | meaning |
 | --- | --- |
@@ -49,7 +78,7 @@ Add a `def(id, name, family, draw)` call in [`site/js/patterns.js`](site/js/patt
 | `o.scale`, `o.detail` | slider values (0.4–2.5, 1–10) |
 | `o.px` | one output pixel in logical units, for seam overlaps |
 
-The background is already filled when `draw` runs. Draw past the edges freely; the canvas clips.
+The background is already filled when `draw` runs. Draw past the edges freely; the canvas clips. Pass `{ thumb: { scale } }` as a fifth argument to tune the style's thumbnail.
 
 ## Deploy
 
@@ -57,7 +86,7 @@ The background is already filled when `draw` runs. Draw past the edges freely; t
 ./scripts/deploy.sh
 ```
 
-This rsyncs `site/` (minus `sheet.html`) to `/var/www/mcchord.net/patterns/` and checks each asset over HTTPS. Set `DEPLOY_HOST`, `DEPLOY_PATH` and `DEPLOY_URL` to publish elsewhere. The site uses relative paths, so it works under any directory, including GitHub Pages. When you change CSS or JS, bump the `?v=N` query strings in `index.html` and `app.js`.
+This rsyncs `site/` (minus `sheet.html`) to `/var/www/mcchord.net/patterns/` and checks each asset over HTTPS. Set `DEPLOY_HOST`, `DEPLOY_PATH` and `DEPLOY_URL` to publish elsewhere. The site uses relative paths, so it works under any directory, including GitHub Pages. When you change CSS or JS, bump the `?v=N` query strings in `index.html`, `app.js`, `core.js` and `sheet.html`.
 
 ## License
 

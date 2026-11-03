@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette,
-} from './core.js?v=3';
+} from './core.js?v=4';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -119,7 +119,9 @@ function drawPreview() {
   const aspect = ow / oh;
   const wide = window.matchMedia('(min-width: 960px)').matches;
   const availW = frame.clientWidth;
-  const availH = wide ? window.innerHeight - frame.getBoundingClientRect().top - 110 : window.innerHeight * 0.62;
+  // Leave room for whatever sits under the preview (buttons, notes, variations).
+  const below = $('stage').getBoundingClientRect().bottom - frame.getBoundingClientRect().bottom;
+  const availH = wide ? window.innerHeight - frame.getBoundingClientRect().top - below - 20 : window.innerHeight * 0.62;
   let cssW = availW;
   let cssH = cssW / aspect;
   if (cssH > availH) {
@@ -140,6 +142,58 @@ function drawPreview() {
     preview.height = ph;
   }
   renderPattern(preview.getContext('2d'), state, pw, ph);
+  if (!varPending) {
+    varPending = true;
+    requestAnimationFrame(() => {
+      varPending = false;
+      drawVariations();
+    });
+  }
+}
+
+// ---------------------------------------------------------------- variations
+// Six other seeds of the current style and colours. Picking one swaps it with
+// the current seed, so the previous pattern stays one click away.
+
+let varSeeds = Array.from({ length: 6 }, randomSeed);
+let varPending = false;
+
+function buildVariations() {
+  const root = $('variations');
+  varSeeds.forEach((_, k) => {
+    const b = document.createElement('button');
+    b.className = 'variation';
+    b.title = 'Use this variation';
+    b.setAttribute('aria-label', `Variation ${k + 1}`);
+    b.append(document.createElement('canvas'));
+    b.addEventListener('click', () => {
+      remember();
+      [state.seed, varSeeds[k]] = [varSeeds[k], state.seed];
+      commit();
+    });
+    root.append(b);
+  });
+  $('moreVars').addEventListener('click', () => {
+    varSeeds = varSeeds.map(randomSeed);
+    drawVariations();
+  });
+}
+
+function drawVariations() {
+  const [ow, oh] = outputSize();
+  const aspect = ow / oh;
+  const h = 84 * dpr();
+  const w = Math.min(200 * dpr(), h * aspect);
+  for (const [k, b] of [...$('variations').children].entries()) {
+    const c = b.firstChild;
+    const cw = Math.round(w);
+    const ch = Math.round(w / aspect);
+    if (c.width !== cw || c.height !== ch) {
+      c.width = cw;
+      c.height = ch;
+    }
+    renderPattern(c.getContext('2d'), { ...state, seed: varSeeds[k] }, cw, ch);
+  }
 }
 
 // ---------------------------------------------------------------- style thumbnails
@@ -422,6 +476,7 @@ function commit(opts) {
 function newSeed() {
   remember();
   state.seed = randomSeed();
+  varSeeds = varSeeds.map(randomSeed);
   commit();
 }
 
@@ -597,5 +652,6 @@ buildStyles();
 buildPalettes();
 buildSizes();
 buildSaved();
+buildVariations();
 bind();
 commit();

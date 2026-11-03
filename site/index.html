@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Shrikhand&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=3">
+  <link rel="stylesheet" href="css/style.css?v=4">
 </head>
 <body>
   <header class="masthead">
@@ -27,7 +27,7 @@
   </header>
 
   <main class="app">
-    <section class="stage" aria-label="Preview">
+    <section class="stage" id="stage" aria-label="Preview">
       <div class="frame" id="frame">
         <canvas id="preview" role="img" aria-label="Generated pattern preview"></canvas>
       </div>
@@ -40,6 +40,8 @@
         <button id="save" class="btn ghost" title="Keep this pattern on your shelf, in this browser">&hearts; Save</button>
       </div>
       <p class="about"><strong id="aboutName"></strong> <span id="aboutText"></span></p>
+      <div class="var-head"><span>Variations</span><button id="moreVars" class="link" title="Show six more seeds">Show more</button></div>
+      <div class="variations" id="variations"></div>
     </section>
 
     <aside class="panel">
@@ -97,6 +99,6 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=3"></script>
+  <script type="module" src="js/app.js?v=4"></script>
 </body>
 </html>

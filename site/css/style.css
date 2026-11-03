@@ -109,6 +109,28 @@ h1 span { color: var(--ink); text-shadow: 2px 2px 0 var(--gold), 4px 4px 0 var(-
 .about { margin: 14px auto 0; max-width: 62ch; text-align: center; color: var(--ink-soft); font-size: 14px; }
 .about strong { color: var(--ink); margin-right: 4px; }
 
+.var-head {
+  display: flex;
+  justify-content: center;
+  align-items: baseline;
+  gap: 12px;
+  margin: 16px 0 8px;
+  font-size: 12px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--ink-soft);
+}
+.link { border: 0; background: none; padding: 0; color: var(--orange); font: inherit; letter-spacing: inherit; text-transform: inherit; cursor: pointer; }
+.link:hover { text-decoration: underline; }
+.link:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+.variations { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 10px; max-width: 1080px; margin: 0 auto; }
+@media (max-width: 640px) { .variations { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.variation { display: grid; place-items: center; padding: 0; border: 0; background: none; cursor: pointer; }
+.variation canvas { display: block; max-width: 100%; max-height: 84px; width: auto; height: auto; border-radius: 6px; border: 2px solid var(--line); transition: transform 0.12s ease, box-shadow 0.12s ease; }
+.variation:hover canvas { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--shadow); }
+.variation:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; border-radius: 6px; }
+
 /* ------------------------------------------------------------ buttons */
 
 .btn {
