@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=33';
+} from './core.js?v=34';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);

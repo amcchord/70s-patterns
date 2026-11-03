@@ -1365,10 +1365,12 @@ def('composition', 'Composition', 'art', (ctx, o) => {
   }
 
   // The focal circle: a dark disc in a glowing halo, a ringed target, or a coloured sun.
+  let focalR = 0;
   ctx.globalCompositeOperation = 'source-over';
   {
     const [x, y] = hubs[0];
     const R = S * o.rand(0.09, 0.13) * k;
+    focalR = R;
     const kind = rng();
     const c1 = col();
     const c2 = o.pick(others(fills, c1));
@@ -1393,6 +1395,26 @@ def('composition', 'Composition', 'art', (ctx, o) => {
       ctx.arc(x, y, R, 0, TAU);
       ctx.stroke();
       disc(ctx, x + Math.cos(a) * R * 0.45, y + Math.sin(a) * R * 0.45, R * 0.3, line);
+    }
+  }
+
+  // A line or two pass through the focal circle and change colour inside it.
+  {
+    const [x, y] = hubs[0];
+    for (let q = 0; q < 1 + (rng() < 0.5); q++) {
+      const a = dir();
+      const len = S * o.rand(0.45, 0.8);
+      const w = lw(o.pick([2.2, 3.5]));
+      const off = o.rand(-0.06, 0.06) * S;
+      const px = x - Math.sin(a) * off;
+      const py = y + Math.cos(a) * off;
+      seg(px, py, a, len, w, line);
+      ctx.save();
+      ctx.beginPath();
+      ctx.arc(x, y, focalR * 0.98, 0, TAU);
+      ctx.clip();
+      seg(px, py, a, len, w + 2 * o.px, o.pick(fills));
+      ctx.restore();
     }
   }
 
@@ -1459,6 +1481,40 @@ def('composition', 'Composition', 'art', (ctx, o) => {
       disc(ctx, x, y, r, line);
       disc(ctx, x + r * 0.18, y - r * 0.12, r * 0.55, c1);
     }
+  }
+
+  // A large, sparse grid fragment, slightly turned, as in Composition VIII.
+  if (rng() < 0.45 + o.detail * 0.03) {
+    const [x, y] = at(0.24);
+    const cs = S * o.rand(0.045, 0.07) * k;
+    const m = 3 + Math.floor(rng() * 3);
+    const nn = 2 + Math.floor(rng() * 2);
+    const a = dir();
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(a);
+    // A few cells filled; the rest left open so the grid stays light.
+    for (let q = 0; q < m * nn; q++) {
+      if (o.hash(q, 77, Math.floor(x)) < 0.28) {
+        ctx.globalCompositeOperation = tint;
+        ctx.fillStyle = col();
+        ctx.fillRect(((q % m) - m / 2) * cs, (Math.floor(q / m) - nn / 2) * cs, cs, cs);
+      }
+    }
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.strokeStyle = line;
+    ctx.lineWidth = lw(1.3);
+    ctx.beginPath();
+    for (let q = 0; q <= m; q++) {
+      ctx.moveTo((q - m / 2) * cs, (-nn / 2) * cs);
+      ctx.lineTo((q - m / 2) * cs, (nn / 2) * cs);
+    }
+    for (let q = 0; q <= nn; q++) {
+      ctx.moveTo((-m / 2) * cs, (q - nn / 2) * cs);
+      ctx.lineTo((m / 2) * cs, (q - nn / 2) * cs);
+    }
+    ctx.stroke();
+    ctx.restore();
   }
 
   // Small structures: checkerboards, ladders, squiggles, bars, rays and dots.
