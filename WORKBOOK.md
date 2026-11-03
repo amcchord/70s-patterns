@@ -23,7 +23,7 @@ scripts/deploy.sh     rsync site/ -> mcchord.net:/var/www/mcchord.net/patterns/ 
 ## Commands
 
 ```bash
-python3 -m http.server 8771 --bind 127.0.0.1 --directory site   # preview (also .claude/launch.json "patterns")
+python3 scripts/serve.py                                        # no-cache preview on :8771 (also .claude/launch.json "patterns")
 ./scripts/deploy.sh                                             # publish (only when asked)
 ```
 

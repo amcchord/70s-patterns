@@ -775,9 +775,11 @@ function threeColours(L, h0, h1, h2) {
 }
 
 def('bauhaus', 'Bauhaus Blocks', 'geo', (ctx, o) => {
-  const c = 115 * o.scale;
-  const cols = Math.ceil(o.W / c);
+  // Whole tiles across the width; any crop is shared evenly top and bottom.
+  const cols = Math.max(1, Math.round(o.W / (115 * o.scale)));
+  const c = o.W / cols;
   const rows = Math.ceil(o.H / c);
+  const oy = (o.H - rows * c) / 2;
   const bigP = o.rand(0.04, 0.2);
   const used = new Uint8Array(cols * rows);
   const tiles = [];
@@ -797,7 +799,7 @@ def('bauhaus', 'Bauhaus Blocks', 'geo', (ctx, o) => {
     const [a, b, cc] = threeColours(pal.length, h(0), h(1), h(2));
     const motif = MOTIFS[Math.floor(h(3) * MOTIFS.length)];
     ctx.save();
-    ctx.translate(t.i * c, t.j * c);
+    ctx.translate(t.i * c, oy + t.j * c);
     ctx.fillStyle = pal[a];
     ctx.fillRect(0, 0, s + o.px, s + o.px);
     ctx.translate(s / 2, s / 2);
@@ -1567,19 +1569,21 @@ def('circles', 'Floating Circles', 'art', (ctx, o) => {
 
 def('colorstudy', 'Color Study', 'art', (ctx, o) => {
   const { rng } = o;
-  const c = 165 * o.scale;
+  const c0 = 165 * o.scale;
   const rings = 2 + Math.round(o.detail * 0.3);
   const wob = rng() < 0.75 ? o.rand(0.012, 0.028) : 0;
   const pal = o.colors;
   const L = pal.length;
-  const cols = Math.ceil(o.W / c) + 1;
-  const rows = Math.ceil(o.H / c) + 1;
-  const ox = (o.W - (cols - 1) * c) / 2 - c / 2;
-  const oy = (o.H - (rows - 1) * c) / 2 - c / 2;
+  // Whole cells only: the grid fits the frame exactly, like a painted study.
+  const cols = Math.max(1, Math.round(o.W / c0));
+  const rows = Math.max(1, Math.round(o.H / c0));
+  const cw = o.W / cols;
+  const ch = o.H / rows;
+  const c = Math.min(cw, ch);
   const cells = new Map();
   const add = (col) => cells.get(col) || cells.set(col, new Path2D()).get(col);
   const bgOf = (i, j) => pal[Math.floor(o.hash(i, j, 0) * L)];
-  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) add(bgOf(i, j)).rect(ox + i * c, oy + j * c, c, c);
+  for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) add(bgOf(i, j)).rect(i * cw, j * ch, cw + o.px, ch + o.px);
   for (const [col, p] of cells) {
     ctx.fillStyle = col;
     ctx.fill(p);
@@ -1588,8 +1592,8 @@ def('colorstudy', 'Color Study', 'art', (ctx, o) => {
     for (let i = 0; i < cols; i++) {
       const h = (q) => o.hash(i, j, q);
       let prev = bgOf(i, j);
-      let cx = ox + i * c + c / 2 + (h(1) - 0.5) * c * 0.08;
-      let cy = oy + j * c + c / 2 + (h(2) - 0.5) * c * 0.08;
+      let cx = (i + 0.5) * cw + (h(1) - 0.5) * c * 0.08;
+      let cy = (j + 0.5) * ch + (h(2) - 0.5) * c * 0.08;
       let r = c * (0.36 + h(3) * 0.07);
       for (let q = 0; q < rings; q++) {
         const choices = pal.filter((x) => x !== prev);

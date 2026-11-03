@@ -58,10 +58,10 @@ Invented palettes follow the same rules. Chroma is capped by hue at roughly what
 ## Run locally
 
 ```bash
-python3 -m http.server 8771 --directory site
+python3 scripts/serve.py
 ```
 
-Then open http://localhost:8771/. Opening `index.html` straight from disk won't work, because browsers block ES modules on `file://` URLs.
+Then open http://localhost:8771/. The script is a plain static server that sends `Cache-Control: no-store`, so edits to the modules always load. Opening `index.html` straight from disk won't work, because browsers block ES modules on `file://` URLs.
 
 `site/sheet.html` is a development contact sheet that renders many styles, seeds and palettes at once, for example `sheet.html?styles=waves,ogee&seeds=a,b,c&palette=harvest,disco&rot=20`. It is not deployed.
 
