@@ -32,6 +32,7 @@ Invented palettes follow the same rules. Chroma is capped by hue at roughly what
 - **Palette from image.** Click *From image…*, or drop a photo on the page. The page clusters the photo's colours in OKLab and builds a palette from them using the same rules as the curated set. The image is read in the browser and never uploaded.
 - **Flip ground** swaps the background with its strongest contrast, giving any palette a night or day version.
 - **Variations.** Under the preview you see six other seeds of the current style. Click one to swap it in.
+- **Full screen.** Shows the pattern at your screen's own shape and resolution, as a wallpaper preview. <kbd>Space</kbd> makes another, <kbd>Esc</kbd> closes it.
 - **Your shelf.** *♥ Save* keeps favourite patterns in this browser, so you can come back to them.
 - **Scale, Detail, Rotate and Vintage** sliders. Vintage ages the colours like a print left in the sun. It works in OKLab: inks lose chroma and take on a thin yellow varnish, blacks lift toward brown and the paper yellows, so blues fade to slate rather than drifting purple.
 - **Seeded and shareable.** The URL hash holds the full state (style, colours, seed, sliders, size), so a link reproduces the exact pattern. *Copy link* puts it on the clipboard.

@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=13';
+} from './core.js?v=14';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -505,6 +505,7 @@ function buildSaved() {
 
 function commit(opts) {
   history.replaceState(null, '', `#${toHash()}`);
+  if (!$('fs').hidden) drawFullscreen();
   syncControls(opts);
   drawThumbs();
   schedule();
@@ -606,6 +607,37 @@ function back() {
   commit();
 }
 
+// ---------------------------------------------------------------- full screen
+// The current pattern at the screen's own shape and resolution, like a wallpaper preview.
+
+function drawFullscreen() {
+  const c = $('fsCanvas');
+  const w = window.innerWidth;
+  const h = window.innerHeight;
+  let k = window.devicePixelRatio || 1;
+  const budget = PATTERNS_BY_ID[state.style].pixels ? 6e6 : 16e6;
+  if (w * h * k * k > budget) k = Math.sqrt(budget / (w * h));
+  c.width = Math.round(w * k);
+  c.height = Math.round(h * k);
+  renderPattern(c.getContext('2d'), state, c.width, c.height);
+}
+
+function openFullscreen() {
+  const fs = $('fs');
+  fs.hidden = false;
+  document.body.classList.add('fs-open');
+  drawFullscreen();
+  if (fs.requestFullscreen) fs.requestFullscreen().catch(() => {});
+  $('fsClose').focus();
+}
+
+function closeFullscreen() {
+  if (document.fullscreenElement) document.exitFullscreen().catch(() => {});
+  $('fs').hidden = true;
+  document.body.classList.remove('fs-open');
+  $('fullscreen').focus();
+}
+
 let toastTimer;
 function toast(msg) {
   const t = $('toast');
@@ -679,6 +711,15 @@ function bind() {
   $('save').addEventListener('click', savePattern);
   $('back').addEventListener('click', back);
   $('download').addEventListener('click', download);
+  $('fullscreen').addEventListener('click', openFullscreen);
+  $('fsClose').addEventListener('click', closeFullscreen);
+  $('fsCanvas').addEventListener('click', closeFullscreen);
+  document.addEventListener('fullscreenchange', () => {
+    if (!document.fullscreenElement && !$('fs').hidden) closeFullscreen();
+  });
+  window.addEventListener('resize', () => {
+    if (!$('fs').hidden) drawFullscreen();
+  });
   $('share').addEventListener('click', async () => {
     try {
       await navigator.clipboard.writeText(location.href);
@@ -750,6 +791,16 @@ function bind() {
   }
   window.addEventListener('keydown', (e) => {
     if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (!$('fs').hidden) {
+      // In full screen the whole window is the pattern, so keys act on it directly.
+      if (e.key === 'Escape') closeFullscreen();
+      else if (e.key === ' ') {
+        e.preventDefault();
+        newSeed();
+      } else if (e.key === 's' || e.key === 'S') surprise();
+      else if (e.key === 'ArrowLeft') back();
+      return;
+    }
     const tag = e.target.tagName;
     if (tag === 'INPUT' || tag === 'SELECT' || tag === 'TEXTAREA') return;
     if (e.key === ' ' && tag !== 'BUTTON') {

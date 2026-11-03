@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Shrikhand&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=13">
+  <link rel="stylesheet" href="css/style.css?v=14">
 </head>
 <body>
   <header class="masthead">
@@ -38,6 +38,7 @@
         <label class="seed" title="Same seed + settings = same pattern">Seed <input id="seed" spellcheck="false" autocomplete="off" maxlength="24"></label>
         <button id="share" class="btn ghost" title="Copy a link to this exact pattern">Copy link</button>
         <button id="save" class="btn ghost" title="Keep this pattern on your shelf, in this browser">&hearts; Save</button>
+        <button id="fullscreen" class="btn ghost" title="See it full screen, at your screen's shape. Space for another, Esc to close.">Full screen</button>
       </div>
       <p class="about"><strong id="aboutName"></strong> <span id="aboutText"></span></p>
       <div class="var-head"><span>Variations</span><button id="moreVars" class="link" title="Show six more seeds">Show more</button></div>
@@ -105,7 +106,13 @@
     <p><a href="https://github.com/amcchord/70s-patterns">Source on GitHub</a> &middot; MIT licensed</p>
   </footer>
 
+  <div class="fs" id="fs" hidden>
+    <canvas id="fsCanvas" role="img" aria-label="Pattern, full screen"></canvas>
+    <button id="fsClose" class="fs-close" title="Close (Esc)" aria-label="Close full screen">&times;</button>
+    <p class="fs-hint"><kbd>Space</kbd> another &middot; <kbd>S</kbd> surprise &middot; <kbd>Esc</kbd> close</p>
+  </div>
+
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=13"></script>
+  <script type="module" src="js/app.js?v=14"></script>
 </body>
 </html>
