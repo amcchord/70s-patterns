@@ -41,6 +41,6 @@ The site is static and lives on the shared mcchord.net server (`ssh mcchord.net`
 ## Known limits
 
 - Exports need `CompressionStream`, which is in all current browsers. Older browsers fall back to `canvas.toBlob`, which is limited by their maximum canvas size.
-- Liquid Groove and Op Bulge are computed per pixel. An 8192 × 8192 export takes about 4 s on a laptop; most other 8K exports take 0.3–1.5 s.
+- 8K UHD export times on a laptop (2026-11-03, all 27 styles): 0.6–1.8 s for most; Composition, Floating Circles, Op Bulge and Op Lines take 2.5–3 s; Liquid Groove takes 4.2 s. Strips yield with a MessageChannel, not setTimeout, so exports don't slow down in background tabs.
 - Export strips use a software-rasterised canvas (`willReadFrequently`), so every strip is drawn the same way.
 - Saved patterns ("Your shelf") live in the viewer's localStorage only; they are not synced anywhere.

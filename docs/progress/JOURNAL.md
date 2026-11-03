@@ -57,4 +57,16 @@
 
 **Production actions:** rsynced `site/` to `/var/www/mcchord.net/patterns/` four times with `scripts/deploy.sh`. Nothing else on the server was touched.
 
+**Later the same session**
+- Colour roles: tile and scatter styles weight colours 60-30-10, with the ground and one seed-chosen lead ink, so palettes read as designed rather than evenly spread.
+- Palette from image (button or drag and drop): k-means in OKLab over a 160 px local copy, then the same palette rules. Nothing is uploaded.
+- New style, Kaleidoscope: a mirrored mandala, alone or as 4-fold mirrored tiles with grout.
+- Smaller changes:
+  - Copy hex.
+  - A featured pairing on first visit, and a Surprise me that picks palettes suited to the style.
+  - Compositions rotate at frame size.
+  - Grids fit the frame exactly.
+  - Palette names fit at phone width.
+- Tooling: `scripts/serve.py`, a no-cache preview server, after a stale cached module hid a change during QA; and `scripts/bump.py` for cache busters.
+
 **Next:** possible extras are seamless-tile export and SVG export for the vector styles.

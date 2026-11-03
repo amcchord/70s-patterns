@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=10';
+import { PATTERNS } from './patterns.js?v=11';
 
 export const MAX_SIDE = 8192;
 
@@ -470,6 +470,18 @@ function pngChunk(type, data) {
   return [u32(data.length), typeBytes, data, u32(crc >>> 0)];
 }
 
+// Let the page breathe between strips. setTimeout is throttled to about once a second
+// in background tabs, which would make an export crawl if you switch away; a
+// MessageChannel round trip is not.
+function yieldToPage() {
+  if (globalThis.scheduler?.yield) return globalThis.scheduler.yield();
+  return new Promise((resolve) => {
+    const ch = new MessageChannel();
+    ch.port1.onmessage = () => resolve();
+    ch.port2.postMessage(0);
+  });
+}
+
 export function canStreamPNG() {
   return typeof CompressionStream === 'function';
 }
@@ -510,7 +522,7 @@ export async function exportPNG(spec, pxW, pxH, onProgress = () => {}) {
     }
     await writer.write(out);
     onProgress((y + h) / pxH);
-    await new Promise((r) => setTimeout(r, 0));
+    await yieldToPage();
   }
   await writer.close();
   const idat = new Uint8Array(await compressed);
