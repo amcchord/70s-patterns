@@ -56,6 +56,7 @@ Invented palettes follow the same rules. Chroma is capped by hue at roughly what
   - Banded styles stroke one path several times, widest first, so the colour bands are truly parallel offset curves.
   - Same-coloured neighbours (quilt triangles, rainbow tiles, cube faces) are filled as one path, so no hairlines appear between them.
   - Op Lines draws filled ribbons rather than strokes, so tight crests never fold into pinholes.
+  - Kaleidoscope keeps every wedge shape clear of the mirror lines. Where anti-aliased clips meet, each layer of a stack blends separately at partial coverage, so a shape on the line would let the colour beneath leak through as a hairline.
   - Liquid Groove and Op Bulge are computed per pixel. Each pixel is anti-aliased from its distance to the nearest edge, measured in the pattern's own coordinates.
 
 ## Run locally

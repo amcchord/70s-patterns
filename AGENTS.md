@@ -11,6 +11,11 @@ the public repo `amcchord/70s-patterns`. Workspace-wide rules live in
   randomness depend on output size, the strip being drawn, or culling.
 - Run `node scripts/check.mjs` after touching palettes or the registry; it
   enforces the palette rules documented above `PALETTES` in `core.js`.
+- Never stack several shapes under an anti-aliased clip edge that has to meet
+  another clip (mirrors, tiles). Each layer blends at partial coverage and the
+  colour beneath leaks through as a hairline. Fill same-coloured neighbours as
+  one Path2D instead, keep shapes clear of the edge, or cover the edge with
+  deliberate grout.
 - Verify visually with `site/sheet.html` (contact sheet). Check 8K export with
   `exportPNG` from `site/js/core.js`. See `WORKBOOK.md` for commands.
 - Production is a static directory on the shared mcchord.net web server.

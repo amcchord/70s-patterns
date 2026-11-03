@@ -2300,6 +2300,43 @@ def('kaleido', 'Kaleidoscope', '70s', (ctx, o) => {
   const bands = [];
   for (let b = 0; b < B; b++) bands.push(tone.pick(rng(), bands.length ? [bands[bands.length - 1]] : []));
   const bandAt = (r) => bands[Math.min(B - 1, Math.floor((1 - Math.min(1, r)) * B))];
+  // Wedge shapes must never touch a mirror line. Where the anti-aliased wedge clips meet,
+  // each layer of a stack is blended separately at partial coverage, so a shape on or
+  // near a line lets the colour beneath leak through as a hairline. Keeping shapes clear
+  // leaves only the unclipped background bands under the clip edges.
+  const margin = 0.02;
+  const outline = (kind) => {
+    const ring = (cx, rad, k = 12) => Array.from({ length: k }, (_, q) => [cx + rad * Math.cos((q / k) * TAU), rad * Math.sin((q / k) * TAU)]);
+    const ell = (rx, ry) => Array.from({ length: 16 }, (_, q) => [rx * Math.cos((q / 16) * TAU), ry * Math.sin((q / 16) * TAU)]);
+    if (kind === 'petal') return ell(1.7, 0.55);
+    if (kind === 'eye') return ell(1.7, 0.7);
+    if (kind === 'disc') return ring(0, 1);
+    if (kind === 'ring') return ring(0, 1.16);
+    if (kind === 'tri') return [[1.6, 0], [-0.8, 0.9], [-0.8, -0.9]];
+    if (kind === 'dots') return [...ring(0, 0.32, 8), ...ring(1.1, 0.32, 8), ...ring(2.2, 0.32, 8)];
+    return null;
+  };
+  const clearance = (sh) => {
+    if (sh.kind === 'arc') return Math.min(sh.a - 0.3 * wedge, wedge - sh.a - 0.3 * wedge) * sh.r - 0.2 * sh.size;
+    const cx = Math.cos(sh.a) * sh.r, cy = Math.sin(sh.a) * sh.r;
+    const ca = Math.cos(sh.a), sa = Math.sin(sh.a);
+    let c = Infinity;
+    for (const [u, v] of outline(sh.kind)) {
+      const x = cx + (u * ca - v * sa) * sh.size;
+      const y = cy + (u * sa + v * ca) * sh.size;
+      c = Math.min(c, y, x * Math.sin(wedge) - y * Math.cos(wedge));
+    }
+    return c;
+  };
+  const clearOfMirrors = (sh) => {
+    for (let it = 0; it < 24 && clearance(sh) < margin; it++) {
+      // Nudge toward the middle of the wedge; if it is already there, the shape is too big: shrink it.
+      const mid = wedge / 2;
+      if (Math.abs(sh.a - mid) > 0.01) sh.a += Math.sign(mid - sh.a) * Math.min(Math.abs(mid - sh.a), 0.04 + (margin - clearance(sh)) / Math.max(0.05, sh.r));
+      else sh.size *= 0.85;
+    }
+    return sh;
+  };
   const shapes = [];
   const m = Math.round(8 + o.detail * 3.2);
   for (let q = 0; q < m; q++) {
@@ -2310,7 +2347,7 @@ def('kaleido', 'Kaleidoscope', '70s', (ctx, o) => {
     const under = bandAt(r);
     const c1 = tone.pick(rng(), [under]);
     const c2 = tone.pick(rng(), [c1, under]);
-    shapes.push({ r, a, size, kind, c1, c2 });
+    shapes.push(clearOfMirrors({ r, a, size, kind, c1, c2 }));
   }
   shapes.sort((p, q) => q.size - p.size);
 
