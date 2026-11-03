@@ -216,11 +216,15 @@ def('drops', 'Petal Drops', '70s', (ctx, o) => {
   const cols = Math.ceil(o.W / c) + 1;
   const rows = Math.ceil(o.H / c) + 2;
 
+  // Column grounds first, then each nest level as one path per colour, so drops that touch
+  // across a column edge merge exactly instead of showing a hairline of ground between them.
+  const grounds = new Map();
+  const levels = Array.from({ length: nest }, () => new Map());
+  const add = (map, col) => map.get(col) || map.set(col, new Path2D()).get(col);
   for (let i = 0; i < cols; i++) {
     const x = i * c;
     const colBg = i & 1 ? bgB : bgA;
-    ctx.fillStyle = colBg;
-    ctx.fillRect(x, -c, c + o.px, o.H + 2 * c);
+    add(grounds, colBg).rect(x, -c, c, o.H + 2 * c);
     const pal = others(o.colors, colBg);
     for (let j = -1; j < rows; j++) {
       const y = j * c + (offset && i & 1 ? c / 2 : 0);
@@ -234,11 +238,15 @@ def('drops', 'Petal Drops', '70s', (ctx, o) => {
         const radii = [s / 2, s / 2, s / 2, s / 2];
         radii[corner] = 0;
         // Two alternating colours per column keeps it calm; nested drops step to the next colour.
-        ctx.fillStyle = pal.length >= 2 ? cyc(pal, start + (j & 1) + 2 * (i & 1) + k) : k & 1 ? colBg : pal[0];
-        ctx.beginPath();
-        roundRect(ctx, x + inset, y + inset, s, s, radii);
-        ctx.fill();
+        const col = pal.length >= 2 ? cyc(pal, start + (j & 1) + 2 * (i & 1) + k) : k & 1 ? colBg : pal[0];
+        roundRect(add(levels[k], col), x + inset, y + inset, s, s, radii);
       }
+    }
+  }
+  for (const map of [grounds, ...levels]) {
+    for (const [col, p] of map) {
+      ctx.fillStyle = col;
+      ctx.fill(p);
     }
   }
 });
@@ -828,19 +836,35 @@ def('bauhaus', 'Bauhaus Blocks', 'geo', (ctx, o) => {
     }
   }
   const tone = tones(o);
-  for (const t of tiles) {
-    const s = t.size * c;
+  const colours = (t) => {
     const h = (k) => o.hash(t.i, t.j, k + 10);
     const a = tone.pick(h(0));
     const b = tone.pick(h(1), [a]);
-    const cc = tone.pick(h(2), [a, b]);
+    return [a, b, tone.pick(h(2), [a, b])];
+  };
+  // All tile grounds first (one path per colour), so no ground ever paints over a neighbour's motif.
+  const grounds = new Map();
+  for (const t of tiles) {
+    const s = t.size * c;
+    const [a] = colours(t);
+    (grounds.get(a) || grounds.set(a, new Path2D()).get(a)).rect(t.i * c, oy + t.j * c, s, s);
+  }
+  for (const [col, p] of grounds) {
+    ctx.fillStyle = col;
+    ctx.fill(p);
+  }
+  for (const t of tiles) {
+    const s = t.size * c;
+    const h = (k) => o.hash(t.i, t.j, k + 10);
+    const [a, b, cc] = colours(t);
     const motif = MOTIFS[Math.floor(h(3) * MOTIFS.length)];
     ctx.save();
-    ctx.translate(t.i * c, oy + t.j * c);
-    ctx.fillStyle = a;
-    ctx.fillRect(0, 0, s + o.px, s + o.px);
-    ctx.translate(s / 2, s / 2);
+    ctx.translate(t.i * c + s / 2, oy + t.j * c + s / 2);
     ctx.rotate((Math.floor(h(4) * 4) * Math.PI) / 2);
+    // Grow the motif by half a pixel each side, so shapes that meet a neighbour's at the tile
+    // edge overlap it rather than leaving an anti-aliased hairline of ground.
+    const grow = (s + o.px) / s;
+    ctx.scale(grow, grow);
     ctx.translate(-s / 2, -s / 2);
     motif(ctx, s, a, b, cc, o.detail);
     ctx.restore();
