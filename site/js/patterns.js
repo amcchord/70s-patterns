@@ -2721,6 +2721,72 @@ def('paisley', 'Paisley', '70s', (ctx, o) => {
   }
 }, { thumb: { scale: 1.2 } });
 
+def('weave', 'Weave', 'geo', (ctx, o) => {
+  const { rng } = o;
+  const b = (30 + 34 * rng()) * o.scale * (1.25 - o.detail * 0.05); // band pitch
+  const gap = b * o.rand(0.18, 0.3);
+  const twill = rng() < 0.45; // 2/2 twill, otherwise plain 1/1
+  const tone = tones(o, 0);
+  // Madras-style repeats: a short stripe sequence for the warp, often mirrored in the weft.
+  const m = 2 + Math.floor(rng() * 4);
+  const warpSeq = [];
+  for (let k = 0; k < m; k++) warpSeq.push(tone.pick(rng(), [o.bg, warpSeq[k - 1]]));
+  // Weft echoes the warp shifted half a repeat (so crossings always differ), or has its own colours.
+  const shift = Math.max(1, Math.floor(m / 2));
+  const weftSeq = rng() < 0.5 ? warpSeq.map((_, k) => warpSeq[(k + shift) % m]) : warpSeq.map((c) => tone.pick(rng(), [o.bg, c]));
+  const shade = mixHex(darkest(o.colors), '#000000', 0.2);
+  const cols = Math.ceil(o.W / b) + 2;
+  const rows = Math.ceil(o.H / b) + 2;
+  const over = (i, j) => (twill ? ((i + j) & 3) < 2 : ((i + j) & 1) === 0);
+  const paths = new Map();
+  const add = (col) => paths.get(col) || paths.set(col, new Path2D()).get(col);
+  const flush = () => {
+    for (const [col, p] of paths) {
+      ctx.fillStyle = col;
+      ctx.fill(p);
+    }
+    paths.clear();
+  };
+  // 1. Warp threads, full length. 2. Weft threads across them.
+  for (let i = -1; i < cols; i++) add(cyc(warpSeq, i)).rect(i * b + gap / 2, -b, b - gap, o.H + 2 * b);
+  flush();
+  for (let j = -1; j < rows; j++) add(cyc(weftSeq, j)).rect(-b, j * b + gap / 2, o.W + 2 * b, b - gap);
+  flush();
+  // 3. Where the warp rides over, a soft shadow on the weft, then the warp itself on top.
+  const shadow = new Path2D();
+  for (let j = -1; j < rows; j++) {
+    for (let i = -1; i < cols; i++) {
+      if (!over(i, j)) continue;
+      const x = i * b + gap / 2;
+      const y = j * b + gap / 2;
+      shadow.rect(x - gap * 0.35, y, b - gap + gap * 0.7, b - gap);
+      add(cyc(warpSeq, i)).rect(x, y - o.px, b - gap, b - gap + 2 * o.px);
+    }
+  }
+  ctx.globalAlpha = 0.32;
+  ctx.fillStyle = shade;
+  ctx.fill(shadow);
+  ctx.globalAlpha = 1;
+  flush();
+  // 4. Pillow shading: each visible thread segment darkens toward the ends where it dives under.
+  const dark = rgba(shade, 0.26);
+  const clear = rgba(shade, 0);
+  for (let j = -1; j < rows; j++) {
+    for (let i = -1; i < cols; i++) {
+      const x = i * b + gap / 2;
+      const y = j * b + gap / 2;
+      const s = b - gap;
+      const g = over(i, j) ? ctx.createLinearGradient(x, y, x, y + s) : ctx.createLinearGradient(x, y, x + s, y);
+      g.addColorStop(0, dark);
+      g.addColorStop(0.3, clear);
+      g.addColorStop(0.7, clear);
+      g.addColorStop(1, dark);
+      ctx.fillStyle = g;
+      ctx.fillRect(x, y, s, s);
+    }
+  }
+}, { thumb: { scale: 1.3 } });
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2754,5 +2820,6 @@ const ABOUT = {
   halftone: 'Pop-art halftone: angled screens of dots, overprinted like ink.',
   homage: 'Nested squares that sit low and glow, after Josef Albers.',
   paisley: 'Banded paisleys with flower hearts and dotted edges, in offset rows.',
+  weave: 'Woven bands, plain or twill, in madras-style stripe repeats.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';
