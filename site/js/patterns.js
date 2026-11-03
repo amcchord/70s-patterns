@@ -2613,6 +2613,114 @@ def('homage', 'Homage', 'art', (ctx, o) => {
   }
 }, { thumb: { scale: 0.8 }, fit: true });
 
+// A paisley (boteh) outline in unit space: round body at the origin, tail curling to the upper right.
+function botehPath(p, x, y, size, rot, flip, shrink = 1) {
+  // Shrink toward a point inside the body, so nested bands stay centred in the round part.
+  const cx = 0.12, cy = 0.05;
+  const pts = [
+    [0, 1],
+    [-1.05, 1], [-1.2, 0], [-0.8, -0.65],
+    [-0.45, -1.2], [0.25, -1.55], [0.85, -1.6],
+    [1.35, -1.62], [1.6, -1.25], [1.35, -0.95],
+    [1.15, -1.2], [0.8, -1.1], [0.95, -0.55],
+    [1.1, 0.1], [0.7, 1], [0, 1],
+  ];
+  const c = Math.cos(rot), sn = Math.sin(rot);
+  const tr = ([u, v]) => {
+    let a = cx + (u - cx) * shrink;
+    const b = cy + (v - cy) * shrink;
+    if (flip) a = -a;
+    return [x + (a * c - b * sn) * size, y + (a * sn + b * c) * size];
+  };
+  const P = pts.map(tr);
+  p.moveTo(...P[0]);
+  for (let k = 1; k < P.length; k += 3) p.bezierCurveTo(...P[k], ...P[k + 1], ...P[k + 2]);
+  p.closePath();
+}
+
+def('paisley', 'Paisley', '70s', (ctx, o) => {
+  const { rng } = o;
+  const size = 62 * o.scale;
+  const dx = size * 3.3;
+  const dy = size * 3.1;
+  const bands = 2 + Math.floor(o.detail / 3);
+  const tone = tones(o, 0.12);
+  const line = contrastInk(o);
+  const mirror = rng() < 0.6; // alternate rows face the other way
+  const dotted = rng() < 0.7;
+  const tilt = o.rand(-0.5, 0.2);
+  const ground = rng() < 0.35 ? tone.pick(rng(), [line]) : o.bg;
+  const groundDots = rng() < 0.5;
+  if (ground !== o.bg) {
+    ctx.fillStyle = ground;
+    ctx.fillRect(-size, -size, o.W + 2 * size, o.H + 2 * size);
+  }
+  const cols = Math.ceil(o.W / dx) + 2;
+  const rows = Math.ceil(o.H / dy) + 2;
+  if (groundDots) {
+    // Tiny seed dots between the motifs, on their own offset grid.
+    const p = new Path2D();
+    const r = size * 0.06;
+    for (let j = -1; j < rows * 2; j++) {
+      for (let i = -1; i < cols * 2; i++) {
+        const x = (i + 0.5) * (dx / 2) + (j & 1 ? dx / 4 : 0);
+        const y = (j + 0.5) * (dy / 2);
+        p.moveTo(x + r, y);
+        p.arc(x, y, r, 0, TAU);
+      }
+    }
+    ctx.fillStyle = tone.pick(0.77, [ground]);
+    ctx.fill(p);
+  }
+  for (let j = -1; j < rows; j++) {
+    for (let i = -1; i < cols; i++) {
+      const h = (k) => o.hash(i, j, k);
+      const flip = mirror && j & 1;
+      const x = (i + (j & 1 ? 0.5 : 0)) * dx + (h(1) - 0.5) * size * 0.25;
+      const y = j * dy + size * 0.9 + (h(2) - 0.5) * size * 0.25;
+      const rot = (flip ? -tilt : tilt) + (h(3) - 0.5) * 0.25;
+      const sz = size * (0.92 + h(4) * 0.16);
+      // Outline first, a touch larger, then bands inward.
+      const outline = new Path2D();
+      botehPath(outline, x, y, sz * 1.08, rot, flip);
+      ctx.fillStyle = line;
+      ctx.fill(outline);
+      let prev = line;
+      for (let b = 0; b < bands; b++) {
+        const p = new Path2D();
+        botehPath(p, x, y, sz, rot, flip, 1 - b * (0.62 / bands));
+        const col = tone.pick(h(10 + b), [prev, ground]);
+        ctx.fillStyle = col;
+        ctx.fill(p);
+        prev = col;
+      }
+      // A small flower in the round of the body.
+      const fx = x + (flip ? -0.08 : 0.08) * sz * Math.cos(rot) - 0.12 * sz * Math.sin(rot);
+      const fy = y + (flip ? -0.08 : 0.08) * sz * Math.sin(rot) + 0.12 * sz * Math.cos(rot);
+      const petals = 5 + Math.floor(h(20) * 3);
+      const pr = sz * 0.25;
+      const fcol = tone.pick(h(21), [prev]);
+      for (let k = 0; k < petals; k++) {
+        const a = rot + (k / petals) * TAU;
+        disc(ctx, fx + Math.cos(a) * pr * 0.6, fy + Math.sin(a) * pr * 0.6, pr * 0.42, fcol);
+      }
+      disc(ctx, fx, fy, pr * 0.38, tone.pick(h(22), [fcol]));
+      // Dots around the edge, like a printed border.
+      if (dotted) {
+        const ring = new Path2D();
+        botehPath(ring, x, y, sz * 1.24, rot, flip);
+        ctx.save();
+        ctx.setLineDash([0.01, sz * 0.2]);
+        ctx.lineCap = 'round';
+        ctx.lineWidth = sz * 0.1;
+        ctx.strokeStyle = line;
+        ctx.stroke(ring);
+        ctx.restore();
+      }
+    }
+  }
+}, { thumb: { scale: 1.2 } });
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2645,5 +2753,6 @@ const ABOUT = {
   parquet: 'Herringbone and basketweave parquet, laid plank by plank with dark grout.',
   halftone: 'Pop-art halftone: angled screens of dots, overprinted like ink.',
   homage: 'Nested squares that sit low and glow, after Josef Albers.',
+  paisley: 'Banded paisleys with flower hearts and dotted edges, in offset rows.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';

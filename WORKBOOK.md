@@ -13,7 +13,7 @@ site/                 the deployable static site
   index.html          page shell (scripts/bump.py moves ?v=N on css/js)
   js/app.js           UI: state <-> URL hash, preview, variations, thumbnails, palettes, shelf, export
   js/core.js          PRNG/hash, palettes + palette rules, inventPalette(), renderPattern(), exportPNG()
-  js/patterns.js      the 30 pattern generators, drawing helpers and ABOUT descriptions
+  js/patterns.js      the 31 pattern generators, drawing helpers and ABOUT descriptions
   css/style.css       70s theme, light and dark
   sheet.html          dev contact sheet (not deployed)
   og.png, favicon.svg social preview and icon
