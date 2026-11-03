@@ -32,11 +32,24 @@ const DEFAULTS = { style: 'waves', palette: 'harvest', scale: 1, detail: 5, rota
 
 // ---------------------------------------------------------------- state & URL
 
-let state = fromHash() || {
-  ...DEFAULTS,
-  colors: [...PALETTES_BY_ID[DEFAULTS.palette].colors],
-  seed: randomSeed(),
-};
+// First visits open on one of these hand-picked pairings.
+const FEATURED = [
+  ['waves', 'harvest', 'groovy'], ['composition', 'kandinsky', 'b'], ['sunrise', 'rainbow73', 'd'],
+  ['bulge', 'psych', 'vega'], ['cutouts', 'cutouts', 'a'], ['destijl', 'destijl', 'b'],
+  ['colorstudy', 'kandinsky', 'a'], ['ogee', 'sunset', 'k'], ['drops', 'avocado', 'k'],
+  ['atomic', 'midcentury', 'a'], ['oplines', 'opart', 'riley'], ['liquid', 'disco', 'groovy'],
+];
+
+// Palette groups that suit each family, for "Surprise me".
+const AFFINITY = { '70s': ['70s', '70s', 'pop', 'soft'], geo: ['art', 'pop', '70s', 'soft'], art: ['art', 'art', 'soft', '70s'] };
+const OP_STYLES = new Set(['opsquares', 'oplines', 'bulge', 'chevron']);
+
+function featured() {
+  const [style, palette, seed] = FEATURED[Math.floor(Math.random() * FEATURED.length)];
+  return { ...DEFAULTS, style, palette, seed, colors: [...PALETTES_BY_ID[palette].colors] };
+}
+
+let state = fromHash() || featured();
 const past = [];
 
 function fromHash() {
@@ -284,7 +297,7 @@ function buildPalettes() {
     b.className = 'palette';
     b.dataset.id = p.id;
     b.dataset.group = p.group;
-    b.title = p.name;
+    b.title = `${p.name} · ${p.colors.join(' ')}`;
     b.setAttribute('aria-label', p.name);
     const strip = document.createElement('span');
     strip.className = 'strip';
@@ -316,11 +329,12 @@ function buildChips() {
     const input = document.createElement('input');
     input.type = 'color';
     input.value = c;
-    input.title = i === 0 ? 'Background colour' : `Colour ${i + 1}`;
+    input.title = `${i === 0 ? 'Background' : `Colour ${i + 1}`} · ${c}`;
     input.setAttribute('aria-label', input.title);
     input.addEventListener('focus', () => remember(), { once: true });
     input.addEventListener('input', () => {
       state.colors[i] = input.value;
+      input.title = `${i === 0 ? 'Background' : `Colour ${i + 1}`} · ${input.value}`;
       state.palette = 'custom';
       commit({ chips: false });
     });
@@ -483,12 +497,17 @@ function newSeed() {
 function surprise() {
   remember();
   const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  state.style = rnd(PATTERNS).id;
-  if (Math.random() < 0.25) {
+  const gen = rnd(PATTERNS);
+  state.style = gen.id;
+  if (Math.random() < 0.2) {
     state.palette = 'custom';
     state.colors = inventPalette();
   } else {
-    const pal = rnd(PALETTES);
+    // Lean toward palettes that suit the style: op art loves black and white.
+    const op = OP_STYLES.has(gen.id) && Math.random() < 0.35;
+    const group = rnd(AFFINITY[gen.family]);
+    const pool = op ? PALETTES.filter((p) => ['opart', 'opred', 'cyanotype'].includes(p.id)) : PALETTES.filter((p) => p.group === group);
+    const pal = rnd(pool);
     state.palette = pal.id;
     state.colors = [...pal.colors];
   }
