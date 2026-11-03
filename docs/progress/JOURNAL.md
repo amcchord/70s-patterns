@@ -78,6 +78,13 @@
   - Four artist palettes: Delaunay, Af Klint, Vasarely and Riley Colour.
   - Screen-reader description of the preview.
   - Strips now yield with a MessageChannel, so exports don't crawl in background tabs.
-- Totals: 29 styles, 47 palettes.
+- Last additions:
+  - Homage (after Albers).
+  - `scripts/check.mjs`: palette rules, inventor, vintage and registry. A deliberately bad palette fails it.
+  - Floating mini preview on phones.
+  - Copy image.
+  - Two-row action bar.
+- Totals: 30 styles, 47 palettes.
+- Not verified: Copy image's success path. The app's built-in browser denies clipboard writes; only the fallback message was seen.
 
-**Next:** possible extras are seamless-tile export for the lattice styles and SVG export for the vector styles.
+**Next:** seamless-tile export was considered and deferred. Only about six cell-based styles (Truchet, Color Study, Bauhaus Blocks, Rainbow Tiles, Homage, Parquet) could tile exactly. SVG export for the vector styles is the other candidate.

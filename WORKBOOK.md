@@ -13,11 +13,14 @@ site/                 the deployable static site
   index.html          page shell (scripts/bump.py moves ?v=N on css/js)
   js/app.js           UI: state <-> URL hash, preview, variations, thumbnails, palettes, shelf, export
   js/core.js          PRNG/hash, palettes + palette rules, inventPalette(), renderPattern(), exportPNG()
-  js/patterns.js      the 29 pattern generators, drawing helpers and ABOUT descriptions
+  js/patterns.js      the 30 pattern generators, drawing helpers and ABOUT descriptions
   css/style.css       70s theme, light and dark
   sheet.html          dev contact sheet (not deployed)
   og.png, favicon.svg social preview and icon
 scripts/deploy.sh     rsync site/ -> mcchord.net:/var/www/mcchord.net/patterns/ + HTTP checks
+scripts/serve.py      no-cache local preview server
+scripts/bump.py       bump every ?v=N cache buster together
+scripts/check.mjs     palette rules, inventor, vintage and registry checks (node)
 ```
 
 ## Commands
