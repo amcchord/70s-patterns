@@ -2089,7 +2089,8 @@ def('atomic', 'Atomic Age', 'art', (ctx, o) => {
     for (let q = 0; q < spikes; q++) {
       const a = rot + (q / spikes) * TAU;
       const len = q & 1 ? r * 0.55 : r;
-      ctx.moveTo(x + Math.cos(a) * r * 0.12, y + Math.sin(a) * r * 0.12);
+      // Spikes start at the centre so their union covers the hub with no anti-aliased specks.
+      ctx.moveTo(x, y);
       ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
     }
     ctx.stroke();
@@ -2197,3 +2198,84 @@ def('atomic', 'Atomic Age', 'art', (ctx, o) => {
     }
   }
 }, { thumb: { scale: 1.6 } });
+
+def('oplines', 'Op Lines', 'geo', (ctx, o) => {
+  const { rng } = o;
+  const pitch = 15 * o.scale;
+  const ink = contrastInk(o);
+  const mode = Math.floor(rng() * 3); // 0 squeeze, 1 swell, 2 ripple. Rows always share phase, so lines never cross.
+  const vertical = rng() < 0.4;
+  const lw = pitch * o.rand(0.42, 0.56);
+  const amp = pitch * (0.9 + o.detail * 0.22) * o.rand(0.85, 1.15);
+  const ph = Array.from({ length: 4 }, () => rng() * TAU);
+  const reverse = rng() < 0.5;
+
+  withTurn(ctx, o, vertical ? Math.PI / 2 : 0, (W, H) => {
+    const lmax = W * o.rand(0.09, 0.16);
+    const lmin = lmax * o.rand(0.12, 0.22);
+    const rows = Math.ceil(H / pitch) + 8;
+    const step = lmin / 14;
+    // Each line is a filled ribbon of constant vertical thickness. Stroking would fold
+    // back on itself at tight crests and leave pinholes; a ribbon cannot.
+    const p = new Path2D();
+    for (let r = 0; r < rows; r++) {
+      const y0 = (r - 4) * pitch;
+      const v = y0 / H;
+      let phase = ph[0];
+      const top = [];
+      for (let x = -pitch * 2; x <= W + pitch * 2 + step; x += step) {
+        const u = Math.min(1, Math.max(0, x / W));
+        let lambda = lmax;
+        let a = amp;
+        if (mode === 0) lambda = lmax + (lmin - lmax) * (reverse ? 1 - u : u) ** 1.4;
+        else if (mode === 1) {
+          lambda = lmax + (lmin - lmax) * 0.5 * (reverse ? 1 - u : u);
+          const sw = Math.sin(Math.PI * Math.min(1, Math.max(0, v * 0.9 + 0.05 + 0.25 * Math.sin(TAU * u + ph[3]))));
+          a = amp * (0.08 + 0.92 * sw * sw);
+        } else {
+          lambda = (lmax + lmin) / 2;
+          a = amp * (0.15 + 0.85 * (0.5 + 0.5 * Math.sin(TAU * (u * 1.3 + v * 0.8) + ph[1]) * Math.cos(TAU * (v * 1.1 - u * 0.4) + ph[2])));
+        }
+        top.push([x, y0 + a * Math.sin(phase)]);
+        phase += (TAU * step) / lambda;
+      }
+      p.moveTo(top[0][0], top[0][1] - lw / 2);
+      for (const [x, y] of top) p.lineTo(x, y - lw / 2);
+      for (let q = top.length - 1; q >= 0; q--) p.lineTo(top[q][0], top[q][1] + lw / 2);
+      p.closePath();
+    }
+    ctx.fillStyle = ink;
+    ctx.fill(p);
+  });
+});
+
+// One-line descriptions shown under the preview.
+const ABOUT = {
+  waves: 'Nested wavy bands, like a 1970s bedspread.',
+  scallops: 'Rainbow scales and arches, overlapping row on row.',
+  drops: 'Petal-shaped drops in alternating columns.',
+  loops: 'Interlocking banded loops strung in rows.',
+  ogee: 'An onion-dome ogee lattice with banded cells.',
+  diamonds: 'Concentric diamonds nested on a lattice.',
+  liquid: 'Psychedelic contour bands of a warped field, computed per pixel.',
+  flowers: 'Scattered flower-power daisies, some doubled.',
+  supergraphic: 'Racing-stripe supergraphics with rounded corners.',
+  targets: 'Rows of mod bullseyes.',
+  rainbowtiles: 'Quarter-circle rainbow tiles that join into arches, circles and fans.',
+  sunrise: 'A striped 70s sun with rays and rainbow bands.',
+  bauhaus: 'Bauhaus-style tiles of arcs, circles and blocks.',
+  quilt: 'Mirrored triangle blocks, pieced like a quilt.',
+  chevron: 'Op-art chevrons in a rhythmic stripe sequence.',
+  truchet: 'Truchet tiles that link into endless banded paths.',
+  cubes: 'Tumbling blocks: the classic three-tone cube illusion.',
+  opsquares: 'A checkerboard squeezed into folds, after 1960s op art.',
+  bulge: 'A grid swelling through lenses, after Vasarely’s spheres.',
+  oplines: 'Vibrating wavy lines that tighten and ripple, after Bridget Riley.',
+  composition: 'An abstract composition after Kandinsky: circles, lines and planes.',
+  circles: 'Glowing circles on a night sky, after Kandinsky’s Several Circles.',
+  colorstudy: 'Concentric circles in squares, after Kandinsky’s colour study.',
+  destijl: 'De Stijl grids after Mondrian, sometimes boogie-woogie.',
+  cutouts: 'Paper cut-out fronds and stars, after Matisse.',
+  atomic: 'Mid-century starbursts, boomerangs, atoms and sparkles.',
+};
+for (const p of PATTERNS) p.about = ABOUT[p.id] || '';

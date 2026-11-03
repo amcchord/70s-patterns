@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=2';
+import { PATTERNS } from './patterns.js?v=3';
 
 export const MAX_SIDE = 8192;
 
@@ -263,7 +263,9 @@ export async function exportPNG(spec, pxW, pxH, onProgress = () => {}) {
   const canvas = document.createElement('canvas');
   canvas.width = pxW;
   canvas.height = stripRows;
-  const ctx = canvas.getContext('2d');
+  // Software rasterisation: every strip is read back anyway, and GPU raster can leave
+  // hairline cracks in dense strokes that differ from strip to strip.
+  const ctx = canvas.getContext('2d', { willReadFrequently: true });
 
   const cs = new CompressionStream('deflate'); // zlib framing, which is what IDAT expects
   const writer = cs.writable.getWriter();

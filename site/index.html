@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Shrikhand&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=2">
+  <link rel="stylesheet" href="css/style.css?v=3">
 </head>
 <body>
   <header class="masthead">
@@ -37,7 +37,9 @@
         <button id="surprise" class="btn ghost" title="Random style and palette (S)">Surprise me</button>
         <label class="seed" title="Same seed + settings = same pattern">Seed <input id="seed" spellcheck="false" autocomplete="off" maxlength="24"></label>
         <button id="share" class="btn ghost" title="Copy a link to this exact pattern">Copy link</button>
+        <button id="save" class="btn ghost" title="Keep this pattern on your shelf, in this browser">&hearts; Save</button>
       </div>
+      <p class="about"><strong id="aboutName"></strong> <span id="aboutText"></span></p>
     </section>
 
     <aside class="panel">
@@ -67,6 +69,11 @@
         <label class="slider"><span>Rotate</span><input type="range" id="rotation" min="-90" max="90" step="1"><output for="rotation"></output></label>
       </section>
 
+      <section class="card" id="savedCard" hidden>
+        <h2>Your shelf</h2>
+        <div id="saved" class="saved"></div>
+      </section>
+
       <section class="card">
         <h2>Download PNG</h2>
         <select id="size" aria-label="Output size"></select>
@@ -90,6 +97,6 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=2"></script>
+  <script type="module" src="js/app.js?v=3"></script>
 </body>
 </html>

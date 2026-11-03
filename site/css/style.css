@@ -106,6 +106,9 @@ h1 span { color: var(--ink); text-shadow: 2px 2px 0 var(--gold), 4px 4px 0 var(-
   margin-top: 22px;
 }
 
+.about { margin: 14px auto 0; max-width: 62ch; text-align: center; color: var(--ink-soft); font-size: 14px; }
+.about strong { color: var(--ink); margin-right: 4px; }
+
 /* ------------------------------------------------------------ buttons */
 
 .btn {
@@ -314,6 +317,32 @@ select {
 .progress[hidden] { display: none; }
 
 .hint { margin: 10px 0 0; font-size: 12.5px; color: var(--ink-soft); }
+
+.card[hidden] { display: none; }
+.saved { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+.saved-item { position: relative; }
+.saved-open { display: block; width: 100%; padding: 0; border: 0; background: none; cursor: pointer; }
+.saved-open canvas { display: block; width: 100%; aspect-ratio: 3 / 2; height: auto; border-radius: 6px; border: 2px solid var(--line); }
+.saved-open:hover canvas { box-shadow: 2px 2px 0 var(--shadow); }
+.saved-open:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; border-radius: 6px; }
+.saved-item .remove {
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1.5px solid var(--line);
+  background: var(--card);
+  font-size: 12px;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s;
+}
+.saved-item:hover .remove, .saved-item .remove:focus-visible { opacity: 1; }
+@media (hover: none) { .saved-item .remove { opacity: 1; } }
 
 /* ------------------------------------------------------------ footer & toast */
 

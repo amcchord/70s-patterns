@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette,
-} from './core.js?v=2';
+} from './core.js?v=3';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -40,7 +40,11 @@ let state = fromHash() || {
 const past = [];
 
 function fromHash() {
-  const q = new URLSearchParams(location.hash.slice(1));
+  return parseState(location.hash.slice(1));
+}
+
+function parseState(str) {
+  const q = new URLSearchParams(str);
   if (!q.has('style') && !q.has('seed')) return null;
   const s = { ...DEFAULTS };
   if (PATTERNS_BY_ID[q.get('style')]) s.style = q.get('style');
@@ -141,11 +145,13 @@ function drawPreview() {
 // ---------------------------------------------------------------- style thumbnails
 
 const thumbs = new Map();
+const FAMILIES = [['70s', '1970s'], ['geo', 'Bauhaus, geometric & op'], ['art', 'Art & abstract']];
+// Styles in the order the picker shows them, for [ and ].
+const ORDER = FAMILIES.flatMap(([family]) => PATTERNS.filter((p) => p.family === family).map((p) => p.id));
 
 function buildStyles() {
   const root = $('styles');
-  const groups = [['70s', '1970s'], ['geo', 'Bauhaus, geometric & op'], ['art', 'Art & abstract']];
-  for (const [family, title] of groups) {
+  for (const [family, title] of FAMILIES) {
     const h = document.createElement('h3');
     h.textContent = title;
     root.append(h);
@@ -181,14 +187,17 @@ function drawThumbs() {
   if (key === thumbKey) return;
   thumbKey = key;
   const ids = [...thumbs.keys()];
+  // Draw as many thumbnails as fit in ~10 ms per frame, so the page stays responsive.
   const step = () => {
     if (thumbKey !== key) return; // palette changed again; a newer pass is running
-    const id = ids.shift();
-    if (!id) return;
-    const c = thumbs.get(id);
-    const t = PATTERNS_BY_ID[id].thumb || {};
-    renderPattern(c.getContext('2d'), { style: id, seed: t.seed || 'groovy', colors: state.colors, scale: t.scale || 1.7, detail: 5, rotation: 0 }, c.width, c.height);
-    requestAnimationFrame(step);
+    const t0 = performance.now();
+    while (ids.length && performance.now() - t0 < 10) {
+      const id = ids.shift();
+      const c = thumbs.get(id);
+      const t = PATTERNS_BY_ID[id].thumb || {};
+      renderPattern(c.getContext('2d'), { style: id, seed: t.seed || 'groovy', colors: state.colors, scale: t.scale || 1.7, detail: 5, rotation: 0 }, c.width, c.height);
+    }
+    if (ids.length) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
 }
@@ -310,6 +319,9 @@ function syncControls({ chips = true } = {}) {
   }
   if (chips) buildChips();
   $('seed').value = state.seed;
+  const gen = PATTERNS_BY_ID[state.style];
+  $('aboutName').textContent = gen.name;
+  $('aboutText').textContent = gen.about;
   for (const id of ['scale', 'detail', 'rotation']) {
     $(id).value = state[id];
     $(id).nextElementSibling.textContent = id === 'scale' ? `${Number(state[id]).toFixed(2)}×` : id === 'rotation' ? `${state[id]}°` : state[id];
@@ -323,6 +335,81 @@ function syncControls({ chips = true } = {}) {
   }
   const mp = (w * h) / 1e6;
   $('hint').textContent = `${w.toLocaleString()} × ${h.toLocaleString()} px · ${mp.toFixed(1)} megapixels`;
+}
+
+// ---------------------------------------------------------------- saved patterns
+// A per-browser shelf of favourites. Storage can be unavailable (private
+// windows, blocked site data), so every access is guarded and the page works without it.
+
+const SAVED_KEY = 'gpm.saved.v1';
+const MAX_SAVED = 36;
+
+function loadSaved() {
+  try {
+    const v = JSON.parse(localStorage.getItem(SAVED_KEY) || '[]');
+    return Array.isArray(v) ? v.filter((x) => typeof x === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function storeSaved(list) {
+  try {
+    localStorage.setItem(SAVED_KEY, JSON.stringify(list));
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+function savePattern() {
+  const key = toHash();
+  const list = loadSaved().filter((k) => k !== key);
+  list.unshift(key);
+  if (!storeSaved(list.slice(0, MAX_SAVED))) {
+    toast('This browser is not letting the page save. Copy the link instead.');
+    return;
+  }
+  buildSaved();
+  toast('Saved to your shelf');
+}
+
+function buildSaved() {
+  const list = loadSaved();
+  const root = $('saved');
+  $('savedCard').hidden = list.length === 0;
+  root.replaceChildren();
+  for (const key of list) {
+    const s = parseState(key);
+    if (!s) continue;
+    const item = document.createElement('div');
+    item.className = 'saved-item';
+    const b = document.createElement('button');
+    b.className = 'saved-open';
+    b.title = `${PATTERNS_BY_ID[s.style].name} · ${s.seed}`;
+    b.setAttribute('aria-label', `Open saved ${b.title}`);
+    const c = document.createElement('canvas');
+    c.width = 96 * dpr();
+    c.height = 64 * dpr();
+    b.append(c);
+    b.addEventListener('click', () => {
+      remember();
+      state = s;
+      commit();
+    });
+    const x = document.createElement('button');
+    x.className = 'remove';
+    x.textContent = '×';
+    x.title = 'Remove from shelf';
+    x.setAttribute('aria-label', `Remove ${b.title}`);
+    x.addEventListener('click', () => {
+      storeSaved(loadSaved().filter((k) => k !== key));
+      buildSaved();
+    });
+    item.append(b, x);
+    root.append(item);
+    renderPattern(c.getContext('2d'), s, c.width, c.height);
+  }
 }
 
 function commit(opts) {
@@ -365,9 +452,9 @@ function invent() {
 }
 
 function stepStyle(dir) {
-  const i = PATTERNS.findIndex((p) => p.id === state.style);
+  const i = ORDER.indexOf(state.style);
   remember();
-  state.style = PATTERNS[(i + dir + PATTERNS.length) % PATTERNS.length].id;
+  state.style = ORDER[(i + dir + ORDER.length) % ORDER.length];
   commit();
 }
 
@@ -425,6 +512,7 @@ function bind() {
   $('generate').addEventListener('click', newSeed);
   $('surprise').addEventListener('click', surprise);
   $('invent').addEventListener('click', invent);
+  $('save').addEventListener('click', savePattern);
   $('back').addEventListener('click', back);
   $('download').addEventListener('click', download);
   $('share').addEventListener('click', async () => {
@@ -508,5 +596,6 @@ function bind() {
 buildStyles();
 buildPalettes();
 buildSizes();
+buildSaved();
 bind();
 commit();
