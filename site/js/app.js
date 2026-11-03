@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
-  renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=43';
+  renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE, separateColors,
+} from './core.js?v=44';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -474,7 +474,18 @@ function colourTip() {
   tip.hidden = !worst;
   if (worst) {
     const name = (k) => (k === 0 ? 'the background' : `colour ${k + 1}`);
-    tip.textContent = `${name(worst[0])[0].toUpperCase()}${name(worst[0]).slice(1)} and ${name(worst[1])} are nearly the same, so shapes between them will blur.`;
+    tip.replaceChildren(`${name(worst[0])[0].toUpperCase()}${name(worst[0]).slice(1)} and ${name(worst[1])} are nearly the same, so shapes between them will blur. `);
+    const fix = document.createElement('button');
+    fix.className = 'link';
+    fix.textContent = 'Fix';
+    fix.title = 'Nudge the lightness apart, keeping the hues';
+    fix.addEventListener('click', () => {
+      remember();
+      state.colors = separateColors(state.colors);
+      state.palette = 'custom';
+      commit();
+    });
+    tip.append(fix);
   }
 }
 

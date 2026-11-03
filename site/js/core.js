@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=43';
+import { PATTERNS } from './patterns.js?v=44';
 
 export const MAX_SIDE = 8192;
 
@@ -273,6 +273,34 @@ function composePalette(rand) {
   // Half the time the dark anchor is a near-neutral: warm black or charcoal.
   if (!dark && rand() < 0.5) inks[0] = oklchToHex(r(0.22, 0.3), r(0.01, 0.035), r(30, 80));
   return [ground, ...inks];
+}
+
+// Pull apart any colours that sit too close to tell apart, by moving one of each pair
+// in lightness (keeping its hue and chroma) toward whichever side has more room.
+export function separateColors(colors, gap = 12) {
+  const out = colors.slice();
+  for (let pass = 0; pass < 4; pass++) {
+    let moved = false;
+    for (let i = 0; i < out.length; i++) {
+      for (let j = i + 1; j < out.length; j++) {
+        if (deltaE(out[i], out[j]) >= gap) continue;
+        // Move the later colour of the pair, so the ground (index 0) never changes.
+        const [L, C, h] = hexToOklch(out[j]);
+        const [Lo] = hexToOklch(out[i]);
+        const dir = L >= Lo ? (L < 0.9 ? 1 : -1) : L > 0.12 ? -1 : 1;
+        let t = L;
+        let next = out[j];
+        for (let step = 0; step < 20 && deltaE(next, out[i]) < gap; step++) {
+          t = Math.min(0.97, Math.max(0.08, t + dir * 0.02));
+          next = oklchToHex(t, C, h);
+        }
+        out[j] = next;
+        moved = true;
+      }
+    }
+    if (!moved) break;
+  }
+  return out;
 }
 
 export function inventPalette(rand = Math.random) {

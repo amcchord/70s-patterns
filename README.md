@@ -32,7 +32,7 @@ Colour carries these patterns, so every curated palette follows the same rules:
 
 Invented palettes follow the same rules. Chroma is capped by hue at roughly what real pigments reach, so greens and cyans never go neon. Light tints lean slightly toward yellow and deep shades toward red-brown, as pigments do.
 - **Palette from image.** Click *From image…*, or drop a photo on the page. The page clusters the photo's colours in OKLab and builds a palette from them using the same rules as the curated set. The image is read in the browser and never uploaded.
-- **Flip ground** swaps the background with its strongest contrast, giving any palette a night or day version.
+- **Flip ground** swaps the background with its strongest contrast, giving any palette a night or day version. If two of your colours are too close to tell apart, a warning offers **Fix**. Fix nudges one colour's lightness until the pair separates, keeping its hue.
 - **Picks.** Twelve hand-picked style and palette pairings, a different set each visit.
 - **Variations.** Under the preview you see six other seeds of the current style. Click one to swap it in.
 - **Full screen.** Shows the pattern at your screen's own shape and resolution, as a wallpaper preview. <kbd>Space</kbd> makes another, <kbd>Esc</kbd> closes it.

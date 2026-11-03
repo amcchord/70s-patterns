@@ -11,7 +11,7 @@ import path from 'node:path';
 
 const root = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const core = await import(path.join(root, 'site/js/core.js'));
-const { PALETTES, PATTERNS, inventPalette, ageColors, deltaE, mulberry32, paletteFromPixels } = core;
+const { PALETTES, PATTERNS, inventPalette, ageColors, deltaE, mulberry32, paletteFromPixels, separateColors } = core;
 
 let failures = 0;
 const fail = (msg) => {
@@ -78,6 +78,18 @@ for (const p of PALETTES) {
   }
 }
 console.log('  every palette aged at 35% and 100%');
+
+console.log('Separate colours');
+{
+  const close = ['#f4e4c1', '#4a2511', '#a0451a', '#e07b24', '#f2b33d', '#e3b440'];
+  const out = separateColors(close);
+  if (out[0] !== close[0]) fail('separateColors must never move the ground');
+  let min = Infinity;
+  for (let i = 0; i < out.length; i++) for (let j = i + 1; j < out.length; j++) min = Math.min(min, deltaE(out[i], out[j]));
+  if (min < 10) fail(`separateColors left two colours only ${min.toFixed(1)} ΔE apart`);
+  if (separateColors(PALETTES[0].colors).join() !== PALETTES[0].colors.join()) fail('separateColors changed an already distinct palette');
+}
+console.log('  near-duplicate golds pulled apart');
 
 console.log('Palette from image');
 {
