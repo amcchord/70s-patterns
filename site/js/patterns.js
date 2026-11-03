@@ -589,7 +589,7 @@ def('supergraphic', 'Supergraphic', '70s', (ctx, o) => {
     colors.push(o.bg);
     nestStroke(ctx, p, colors, T / (2 * colors.length - 1));
   }
-});
+}, { thumb: { scale: 1, seed: 'c' } });
 
 def('targets', 'Mod Targets', '70s', (ctx, o) => {
   const { rng } = o;
@@ -2364,7 +2364,7 @@ def('oplines', 'Op Lines', 'geo', (ctx, o) => {
     ctx.fillStyle = ink;
     ctx.fill(p);
   });
-});
+}, { thumb: { scale: 2.2, seed: 'd' } });
 
 def('kaleido', 'Kaleidoscope', '70s', (ctx, o) => {
   const { rng } = o;
@@ -2902,7 +2902,7 @@ def('weave', 'Weave', 'geo', (ctx, o) => {
       ctx.fillRect(x, y, s, s);
     }
   }
-}, { thumb: { scale: 1.3 } });
+}, { thumb: { scale: 1.5, seed: 'k' } });
 
 // One-line descriptions shown under the preview.
 const ABOUT = {
