@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=34';
+} from './core.js?v=36';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -39,6 +39,7 @@ const FEATURED = [
   ['colorstudy', 'kandinsky', 'a'], ['ogee', 'sunset', 'k'], ['drops', 'avocado', 'k'],
   ['atomic', 'midcentury', 'a'], ['oplines', 'opart', 'riley'], ['liquid', 'disco', 'groovy'],
   ['paisley', 'kashmir', 'c'], ['halftone', 'zine', 'a'], ['weave', 'madras', 'd'], ['homage', 'kandinsky', 'b'],
+  ['kaleido', 'zine', 'b'], ['circles', 'vasarely', 'a'], ['parquet', 'midcentury', 'h'], ['rainbowtiles', 'riviera', 'a'],
 ];
 
 // Palette groups that suit each family, for "Surprise me".
@@ -312,6 +313,39 @@ function drawThumbs() {
     if (ids.length) requestAnimationFrame(step);
   };
   requestAnimationFrame(step);
+}
+
+// ---------------------------------------------------------------- picks
+// Hand-picked pairings of style, palette and seed: a quick tour of the best looks.
+
+function buildPicks() {
+  const root = $('picks');
+  // Twelve of the pairings, a different selection each visit.
+  const pool = FEATURED.slice();
+  for (let i = pool.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [pool[i], pool[j]] = [pool[j], pool[i]];
+  }
+  for (const [style, palette, seed] of pool.slice(0, 12)) {
+    const gen = PATTERNS_BY_ID[style];
+    const pal = PALETTES_BY_ID[palette];
+    if (!gen || !pal) continue;
+    const b = document.createElement('button');
+    b.className = 'pick';
+    b.title = `${gen.name} in ${pal.name}`;
+    b.setAttribute('aria-label', b.title);
+    const c = document.createElement('canvas');
+    c.width = 96 * dpr();
+    c.height = 64 * dpr();
+    b.append(c);
+    b.addEventListener('click', () => {
+      remember();
+      Object.assign(state, { style, palette, seed, colors: [...pal.colors], scale: 1, detail: 5, rotation: 0, age: 0 });
+      commit();
+    });
+    root.append(b);
+    renderPattern(c.getContext('2d'), { style, seed, colors: pal.colors, scale: (gen.thumb && gen.thumb.scale) || 1.4, detail: 5, rotation: 0 }, c.width, c.height);
+  }
 }
 
 // ---------------------------------------------------------------- palettes & colours
@@ -893,6 +927,7 @@ function bind() {
 }
 
 buildStyles();
+buildPicks();
 buildPalettes();
 buildSizes();
 buildSaved();
