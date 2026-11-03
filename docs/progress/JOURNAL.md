@@ -99,7 +99,11 @@
   - Sizes capped at 16:1. 8192 × 16 took 20 s or more; 8192 × 512 exports in under 4 s.
   - F shortcut.
   - `docs/showcase.png` sheet of all styles.
-- Live site check: loads in about 150 ms, 56 KB over 5 requests, no console errors.
+- Colour, last round:
+  - Fix button for near-identical colours (`separateColors`).
+  - Invent palette follows the open tab's mood: gentle hue turns within the group, warm schemes for Seventies, muted chroma for Soft.
+  - Surprise me invents within the style's suited group.
+- Live site check at v=47: loads in about 150 ms, 56 KB over 5 requests, no console errors. An 8K Paisley export took 2.0 s on the live site.
 - Totals: 33 styles, 49 palettes.
 - Not verified: Copy image's success path. The app's built-in browser denies clipboard writes; only the fallback message was seen.
 
