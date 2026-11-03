@@ -84,7 +84,13 @@
   - Floating mini preview on phones.
   - Copy image.
   - Two-row action bar.
-- Totals: 30 styles, 47 palettes.
+- Then:
+  - Paisley (curled botehs) and Weave (plain or twill, with pillow shading).
+  - Kashmir and Madras palettes.
+  - More featured pairings.
+  - Homage keeps its size at small scale.
+  - Reduced-motion support.
+- Totals: 32 styles, 49 palettes.
 - Not verified: Copy image's success path. The app's built-in browser denies clipboard writes; only the fallback message was seen.
 
 **Next:** seamless-tile export was considered and deferred. Only about six cell-based styles (Truchet, Color Study, Bauhaus Blocks, Rainbow Tiles, Homage, Parquet) could tile exactly. SVG export for the vector styles is the other candidate.

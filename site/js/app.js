@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=29';
+} from './core.js?v=30';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -38,6 +38,7 @@ const FEATURED = [
   ['bulge', 'psych', 'vega'], ['cutouts', 'cutouts', 'a'], ['destijl', 'destijl', 'b'],
   ['colorstudy', 'kandinsky', 'a'], ['ogee', 'sunset', 'k'], ['drops', 'avocado', 'k'],
   ['atomic', 'midcentury', 'a'], ['oplines', 'opart', 'riley'], ['liquid', 'disco', 'groovy'],
+  ['paisley', 'kashmir', 'c'], ['halftone', 'zine', 'a'], ['weave', 'madras', 'd'], ['homage', 'kandinsky', 'b'],
 ];
 
 // Palette groups that suit each family, for "Surprise me".

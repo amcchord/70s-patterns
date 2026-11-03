@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=29';
+import { PATTERNS } from './patterns.js?v=30';
 
 export const MAX_SIDE = 8192;
 
@@ -77,6 +77,7 @@ export const PALETTES = [
   P('70s', 'seafoam', 'Seafoam Motel', ['#e9efe2', '#1f5f61', '#6fb3a6', '#e98a3c', '#f3c969']),
   P('70s', 'peach', 'Peach Melba', ['#fbebdc', '#3b5d57', '#b4472f', '#e9845c', '#f2b48a']),
   P('70s', 'denim', 'Denim & Rust', ['#f1e9da', '#1b2a49', '#3d6a9e', '#c4572c', '#e8b04a']),
+  P('70s', 'kashmir', 'Kashmir', ['#efe2c8', '#3a1d26', '#8e2b2c', '#c8742e', '#2e5f63', '#dcb35c']),
   P('70s', 'cherrycola', 'Cherry Cola', ['#2b0f0c', '#7d1d1a', '#c43b2c', '#ee7d4b', '#f7c59a']),
   P('70s', 'avonight', 'Avocado Night', ['#1d2312', '#4f6b1f', '#9aa83a', '#e2b33c', '#e57a33', '#f1e2bf']),
 
@@ -101,6 +102,7 @@ export const PALETTES = [
   P('pop', 'psych', 'Psychedelic', ['#1d1233', '#5f2ca0', '#d93d6c', '#f39a24', '#3ab5a6', '#f2dc84']),
   P('pop', 'lava', 'Lava Lamp', ['#1a0d24', '#7b1fa2', '#e3245e', '#ff7a1a', '#ffc93c']),
   P('pop', 'zine', 'Zine Inks', ['#f2eee6', '#3d5588', '#ff48b0', '#ffb511', '#00838a', '#f15060']),
+  P('pop', 'madras', 'Madras', ['#f4ecdc', '#1e3657', '#c63a2f', '#e9a53a', '#2c7a57', '#7b3d6b']),
   P('pop', 'mint', 'Mod Mint', ['#e6f2ea', '#11423f', '#2c9c86', '#f29e4c', '#e8566b']),
   P('pop', 'pink', 'Pink Lounge', ['#fbe4e2', '#6d1a36', '#d43d6a', '#f58fa3', '#f6c453']),
   P('pop', 'opart', 'Op Art', ['#f7f5f0', '#141414']),
