@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=8';
+import { PATTERNS } from './patterns.js?v=9';
 
 export const MAX_SIDE = 8192;
 
@@ -71,11 +71,11 @@ export const PALETTES = [
   P('70s', 'mustardplum', 'Mustard & Plum', ['#f5ead5', '#341429', '#74294f', '#bb5437', '#dca02a']),
   P('70s', 'polaroid', 'Instant Film', ['#efe6d2', '#2c5b63', '#c8553d', '#e3a447', '#98c0bb']),
   P('70s', 'coffee', 'Coffee Shop', ['#eadbc0', '#2d1a12', '#6e4329', '#b5763f', '#d9a35c']),
-  P('70s', 'babyblue', 'Brown & Baby Blue', ['#f4e7d0', '#3b2416', '#7c4c2c', '#b98a5c', '#6f9cbf', '#adcbe0']),
+  P('70s', 'babyblue', "Baby Blue '76", ['#f4e7d0', '#3b2416', '#7c4c2c', '#b98a5c', '#6f9cbf', '#adcbe0']),
   P('70s', 'modlime', 'Mod Lime', ['#f5ecd6', '#233d2b', '#8db33a', '#e9b632', '#d4572a']),
   P('70s', 'riviera', "Riviera '71", ['#f7ecdd', '#4a1d4c', '#bf2c6b', '#ec5b2d', '#f29b2c']),
   P('70s', 'seafoam', 'Seafoam Motel', ['#e9efe2', '#1f5f61', '#6fb3a6', '#e98a3c', '#f3c969']),
-  P('70s', 'peach', 'Peaches & Cream', ['#fbebdc', '#3b5d57', '#b4472f', '#e9845c', '#f2b48a']),
+  P('70s', 'peach', 'Peach Melba', ['#fbebdc', '#3b5d57', '#b4472f', '#e9845c', '#f2b48a']),
   P('70s', 'denim', 'Denim & Rust', ['#f1e9da', '#1b2a49', '#3d6a9e', '#c4572c', '#e8b04a']),
   P('70s', 'cherrycola', 'Cherry Cola', ['#2b0f0c', '#7d1d1a', '#c43b2c', '#ee7d4b', '#f7c59a']),
   P('70s', 'avonight', 'Avocado Night', ['#1d2312', '#4f6b1f', '#9aa83a', '#e2b33c', '#e57a33', '#f1e2bf']),
