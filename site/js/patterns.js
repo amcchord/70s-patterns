@@ -1674,3 +1674,526 @@ def('destijl', 'De Stijl Grid', 'art', (ctx, o) => {
     }
   }
 });
+
+def('bulge', 'Op Bulge', 'geo', null, {
+  // A grid pushed through one or more lenses, in the manner of 1960s and 70s op art.
+  // Computed per pixel: each pixel maps back into the flat grid, and its edge distance
+  // (divided by the local pixel size in grid units) gives exact anti-aliasing.
+  pixels(ctx, o) {
+    const { rng } = o;
+    const S = Math.min(o.W, o.H);
+    const s = 52 * o.scale;
+    const mode = Math.floor(rng() * 3); // 0 checker, 1 dots, 2 stripes
+    const ink = contrastInk(o);
+    const tints = others(o.ink, ink);
+    const shadeA = o.colors.length > 2 && rng() < 0.6 ? hexToRgb(o.pick(tints)) : null;
+    const shadeB = shadeA && rng() < 0.5 ? hexToRgb(o.pick(tints)) : null;
+    const A = hexToRgb(o.bg);
+    const B = hexToRgb(ink);
+    const strength = 0.32 + o.detail * 0.045;
+    const single = rng() < 0.55;
+    const lenses = [];
+    const nL = single ? 1 : 2 + Math.floor(rng() * 2);
+    for (let q = 0; q < nL; q++) {
+      const R = S * (single ? o.rand(0.36, 0.5) : o.rand(0.22, 0.34));
+      const cx = single ? o.W * o.rand(0.4, 0.6) : o.W * o.rand(0.18, 0.82);
+      const cy = single ? o.H * o.rand(0.4, 0.6) : o.H * o.rand(0.18, 0.82);
+      const k = strength * (q > 0 && rng() < 0.4 ? -0.7 : 1); // a few pinch instead of bulge
+      lenses.push([cx, cy, R, k]);
+    }
+    const dotR = s * o.rand(0.3, 0.4);
+
+    const { x0, y0, w, h } = o.pixel;
+    const unit = o.unit;
+    const cxL = o.W / 2;
+    const cyL = o.H / 2;
+    const ca = Math.cos(-o.angle);
+    const sa = Math.sin(-o.angle);
+    // Two rows of mapped grid coordinates at a time: (u, v) and the lens shading.
+    const rowU = [new Float64Array(w + 1), new Float64Array(w + 1)];
+    const rowV = [new Float64Array(w + 1), new Float64Array(w + 1)];
+    const rowS = [new Float32Array(w + 1), new Float32Array(w + 1)];
+    const mapRow = (j, b) => {
+      const py = y0 + j + 0.5;
+      for (let i = 0; i <= w; i++) {
+        const lx = (x0 + i + 0.5) / unit - cxL;
+        const ly = py / unit - cyL;
+        const X = lx * ca - ly * sa + cxL;
+        const Y = lx * sa + ly * ca + cyL;
+        let u = X;
+        let v = Y;
+        let sh = 0;
+        // Lenses apply one after another. Each is one-to-one, so overlaps never fold the grid.
+        for (const [cx, cy, R, k] of lenses) {
+          const dx = u - cx;
+          const dy = v - cy;
+          const t2 = (dx * dx + dy * dy) / (R * R);
+          if (t2 < 1) {
+            const e = (1 - t2) * (1 - t2);
+            u -= dx * k * e;
+            v -= dy * k * e;
+            if (k > 0) sh = Math.max(sh, e);
+          }
+        }
+        rowU[b][i] = u;
+        rowV[b][i] = v;
+        rowS[b][i] = sh;
+      }
+    };
+    const img = ctx.createImageData(w, h);
+    const d = img.data;
+    mapRow(0, 0);
+    for (let j = 0; j < h; j++) {
+      const c = j & 1;
+      const n = c ^ 1;
+      mapRow(j + 1, n);
+      const U = rowU[c], V = rowV[c], U2 = rowU[n], V2 = rowV[n], SH = rowS[c];
+      for (let i = 0; i < w; i++) {
+        const u = U[i];
+        const v = V[i];
+        const pix = Math.max(Math.hypot(U[i + 1] - u, V[i + 1] - v), Math.hypot(U2[i] - u, V2[i] - v)) + 1e-9;
+        const fu = u / s;
+        const fv = v / s;
+        const iu = Math.floor(fu);
+        const iv = Math.floor(fv);
+        let par, dist;
+        if (mode === 2) {
+          const f2 = fu * 2;
+          const i2 = Math.floor(f2);
+          par = i2 & 1;
+          dist = (s / 2) * Math.min(f2 - i2, 1 - (f2 - i2));
+        } else {
+          par = (iu + iv) & 1;
+          dist = s * Math.min(fu - iu, 1 - (fu - iu), fv - iv, 1 - (fv - iv));
+          if (mode === 1) {
+            const e = Math.hypot(u - (iu + 0.5) * s, v - (iv + 0.5) * s) - dotR;
+            if (e < 0) par ^= 1;
+            dist = Math.min(dist, Math.abs(e));
+          }
+        }
+        const al = Math.min(1, 0.5 + dist / pix);
+        let P = par ? B : A;
+        let Q = par ? A : B;
+        const sh = SH[i];
+        if (sh > 0 && shadeA) {
+          // Tint the raised dome so it reads as a sphere.
+          const ta = sh * 0.85;
+          const mixA = [A[0] + (shadeA[0] - A[0]) * ta, A[1] + (shadeA[1] - A[1]) * ta, A[2] + (shadeA[2] - A[2]) * ta];
+          const sB = shadeB || B;
+          const tb = shadeB ? ta : 0;
+          const mixB = [B[0] + (sB[0] - B[0]) * tb, B[1] + (sB[1] - B[1]) * tb, B[2] + (sB[2] - B[2]) * tb];
+          P = par ? mixB : mixA;
+          Q = par ? mixA : mixB;
+        }
+        const di = (j * w + i) * 4;
+        d[di] = Q[0] + (P[0] - Q[0]) * al;
+        d[di + 1] = Q[1] + (P[1] - Q[1]) * al;
+        d[di + 2] = Q[2] + (P[2] - Q[2]) * al;
+        d[di + 3] = 255;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+  },
+});
+
+def('sunrise', 'Sunrise', '70s', (ctx, o) => {
+  const { rng } = o;
+  const S = Math.min(o.W, o.H);
+  const k = o.scale;
+  const pal = inks(o);
+  const start = Math.floor(rng() * pal.length);
+  const mode = Math.floor(rng() * 3); // 0 horizon, 1 sunburst, 2 tiled arches
+  const n = 3 + Math.round(o.detail * 0.35);
+  const gaps = rng() < 0.4;
+  const stripes = rng() < 0.75;
+  const twist = rng() < 0.35 ? o.rand(0.18, 0.4) * (rng() < 0.5 ? -1 : 1) : 0;
+  const nRays = 2 * Math.round(7 + o.detail * 1.1);
+  const boldRays = rng() < 0.45;
+  // Rays take the most saturated ink, so softened rays stay a tint and never turn grey or brown.
+  const sat = (c) => {
+    const v = hexToRgb(c);
+    return Math.max(...v) - Math.min(...v);
+  };
+  const ranked = [...others(pal, cyc(pal, start))].sort((a, b) => sat(b) - sat(a));
+  const rayInk = ranked[Math.floor(rng() * Math.min(2, ranked.length))];
+  const lightBg = luminance(o.bg) > 128;
+  const rayCol = boldRays ? rayInk : mixHex(rayInk, o.bg, lightBg ? 0.58 : 0.3);
+
+  const rays = (cx, cy, far, col) => {
+    const p = new Path2D();
+    for (let q = 0; q < nRays; q += 2) {
+      const a0 = (q / nRays) * TAU;
+      const a1 = ((q + 1) / nRays) * TAU;
+      const pt = (a, r) => [cx + Math.cos(a) * r, cy + Math.sin(a) * r];
+      p.moveTo(cx, cy);
+      if (twist) {
+        p.quadraticCurveTo(...pt(a0 + twist, far * 0.5), ...pt(a0 + 2 * twist, far));
+        p.lineTo(...pt(a1 + 2 * twist, far));
+        p.quadraticCurveTo(...pt(a1 + twist, far * 0.5), cx, cy);
+      } else {
+        p.lineTo(...pt(a0, far));
+        p.lineTo(...pt(a1, far));
+      }
+      p.closePath();
+    }
+    ctx.fillStyle = col;
+    ctx.fill(p);
+  };
+  // Rainbow bands around a striped sun. st picks the colours.
+  const sun = (cx, cy, R, bw, st, behind) => {
+    for (let b = n - 1; b >= 0; b--) {
+      const r = R + (b + 1) * bw;
+      if (gaps) {
+        ctx.strokeStyle = cyc(pal, st + b + 1);
+        ctx.lineWidth = bw * 0.72;
+        ctx.beginPath();
+        ctx.arc(cx, cy, r - bw / 2, 0, TAU);
+        ctx.stroke();
+      } else {
+        disc(ctx, cx, cy, r, cyc(pal, st + b + 1));
+      }
+    }
+    if (gaps) {
+      disc(ctx, cx, cy, R + bw * 0.14, behind);
+    }
+    disc(ctx, cx, cy, R, cyc(pal, st));
+    if (!stripes) return;
+    // Retro cut-out stripes across the lower half, thickening toward the bottom.
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, R + o.px, 0, TAU);
+    ctx.clip();
+    ctx.fillStyle = gaps ? behind : cyc(pal, st + 1);
+    let y = cy + R * 0.12;
+    for (let m = 0; y < cy + R; m++) {
+      const t = R * (0.035 + m * 0.03);
+      ctx.fillRect(cx - R - 1, y, 2 * R + 2, t);
+      y += t + R * (0.13 - m * 0.012);
+    }
+    ctx.restore();
+  };
+
+  if (mode === 2) {
+    const c = 230 * k;
+    const th = c * 1.25;
+    const gap = c * 0.09;
+    const frame = darkest(o.colors) === o.bg ? cyc(pal, start + n + 2) : darkest(o.colors);
+    ctx.fillStyle = frame;
+    ctx.fillRect(-1, -1, o.W + 2, o.H + 2);
+    const cols = Math.ceil(o.W / c) + 1;
+    const rows = Math.ceil(o.H / th) + 1;
+    for (let j = -1; j < rows; j++) {
+      for (let i = -1; i < cols; i++) {
+        const x = i * c + (j & 1 ? c / 2 : 0) + gap / 2;
+        const y = j * th + gap / 2;
+        const tw = c - gap;
+        const hh = th - gap;
+        const st = start + Math.floor(o.hash(i, j) * pal.length);
+        ctx.save();
+        ctx.beginPath();
+        ctx.moveTo(x, y + hh);
+        ctx.lineTo(x, y + tw / 2);
+        ctx.arc(x + tw / 2, y + tw / 2, tw / 2, Math.PI, TAU);
+        ctx.lineTo(x + tw, y + hh);
+        ctx.closePath();
+        ctx.fillStyle = o.bg;
+        ctx.fill();
+        ctx.clip();
+        rays(x + tw / 2, y + hh, hh * 1.6, rayCol);
+        sun(x + tw / 2, y + hh, tw * 0.16, (tw * 0.3) / n, st, o.bg);
+        ctx.restore();
+      }
+    }
+    return;
+  }
+
+  const horizon = mode === 0;
+  const cx = o.W * (horizon ? 0.5 : o.rand(0.35, 0.65));
+  const hy = o.H * (horizon ? o.rand(0.6, 0.72) : o.rand(0.4, 0.6));
+  const R = S * o.rand(0.13, 0.18) * k;
+  const bw = (S * o.rand(0.2, 0.28) * k) / n;
+  const cy = horizon ? hy - R * 0.55 : hy;
+  rays(cx, cy, Math.hypot(o.W, o.H) * 1.2, rayCol);
+  sun(cx, cy, R, bw, start, o.bg);
+  if (horizon) {
+    // A striped ground in perspective, thin at the horizon.
+    const ground = darkest(o.colors) === o.bg ? cyc(pal, start + n + 2) : darkest(o.colors);
+    ctx.fillStyle = ground;
+    ctx.fillRect(-1, hy, o.W + 2, o.H - hy + 1);
+    const M = 5 + Math.round(o.detail * 0.5);
+    const lineCol = cyc(others(pal, ground), start + 1);
+    ctx.fillStyle = lineCol;
+    for (let m = 0; m < M; m++) {
+      const t0 = (m + 0.35) / M;
+      const y0 = hy + (o.H - hy) * t0 * t0;
+      const tt = (o.H - hy) * (0.012 + 0.05 * t0);
+      ctx.fillRect(-1, y0, o.W + 2, tt);
+    }
+  }
+}, { thumb: { scale: 1.1 } });
+
+def('cutouts', 'Cut-Outs', 'art', (ctx, o) => {
+  const { rng } = o;
+  const k = o.scale;
+  const pal = o.colors;
+  // Sheets of coloured paper on the wall, slightly askew, then shapes cut from other sheets.
+  const size = 290 * k * o.rand(0.85, 1.2);
+  const cols = Math.max(1, Math.round(o.W / size));
+  const rows = Math.max(1, Math.round(o.H / size));
+  const cw = o.W / cols;
+  const ch = o.H / rows;
+  const inset = 5 * k;
+  const jit = Math.min(cw, ch) * 0.012;
+  const sheets = [];
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const avoid = [o.bg];
+      if (i) avoid.push(sheets[sheets.length - 1].col);
+      if (j) avoid.push(sheets[sheets.length - cols].col);
+      const choices = pal.filter((c) => !avoid.includes(c));
+      const col = choices.length ? o.pick(choices) : o.pick(pal);
+      const corner = () => [o.rand(-jit, jit), o.rand(-jit, jit)];
+      sheets.push({ x: i * cw, y: j * ch, col, c: [corner(), corner(), corner(), corner()] });
+    }
+  }
+  const contrast = (under) => {
+    const lu = luminance(under);
+    const options = pal.filter((c) => c !== under);
+    const strong = options.filter((c) => Math.abs(luminance(c) - lu) > 45);
+    return o.pick(strong.length ? strong : options);
+  };
+
+  // A seaweed frond: a curved spine with lobed edges that alternate side to side.
+  const frond = (p, x, y, len, wid, a, lobes, bend, ph) => {
+    const N = 160;
+    const left = [];
+    const right = [];
+    const ca = Math.cos(a), sa = Math.sin(a);
+    for (let q = 0; q <= N; q++) {
+      const t = q / N;
+      const along = len * t;
+      const off = bend * len * t * t;
+      const px = x + ca * along - sa * off;
+      const py = y + sa * along + ca * off;
+      const tx = ca * len - sa * 2 * bend * len * t;
+      const ty = sa * len + ca * 2 * bend * len * t;
+      const tl = Math.hypot(tx, ty);
+      const nx = -ty / tl, ny = tx / tl;
+      const env = Math.pow(Math.sin(Math.PI * Math.min(1, t * 1.08 + 0.02)), 0.7) * (1 - 0.3 * t);
+      const lob = (phase) => (lobes ? 0.16 + 0.84 * Math.pow(Math.abs(Math.sin(Math.PI * lobes * t + phase)), 0.45) : 1);
+      const hand = 1 + 0.035 * Math.sin(t * 41 + ph * 3);
+      const wl = Math.max(wid * 0.05, wid * env * lob(ph) * hand);
+      const wr = Math.max(wid * 0.05, wid * env * lob(ph + Math.PI / 2) * hand);
+      left.push([px + nx * wl, py + ny * wl]);
+      right.push([px - nx * wr, py - ny * wr]);
+    }
+    p.moveTo(...left[0]);
+    for (const pt of left) p.lineTo(...pt);
+    for (let q = right.length - 1; q >= 0; q--) p.lineTo(...right[q]);
+    p.closePath();
+  };
+  // A soft-lobed star, as if cut freehand with scissors.
+  const star = (p, x, y, R, m, rot, ph) => {
+    const N = 220;
+    for (let q = 0; q <= N; q++) {
+      const t = (q / N) * TAU;
+      const r = R * (0.4 + 0.6 * Math.pow(0.5 + 0.5 * Math.cos(m * (t - rot)), 0.85)) * (1 + 0.035 * Math.sin(3 * t + ph));
+      if (q) p.lineTo(x + Math.cos(t) * r, y + Math.sin(t) * r);
+      else p.moveTo(x + Math.cos(t) * r, y + Math.sin(t) * r);
+    }
+    p.closePath();
+  };
+  const blob = (p, x, y, R, ph) => wobbleCircle(p, x, y, R, 0.08, [ph, ph * 2.3, ph * 0.7]);
+
+  for (const s of sheets) {
+    const pts = [
+      [s.x + inset + s.c[0][0], s.y + inset + s.c[0][1]],
+      [s.x + cw - inset + s.c[1][0], s.y + inset + s.c[1][1]],
+      [s.x + cw - inset + s.c[2][0], s.y + ch - inset + s.c[2][1]],
+      [s.x + inset + s.c[3][0], s.y + ch - inset + s.c[3][1]],
+    ];
+    ctx.fillStyle = s.col;
+    ctx.beginPath();
+    ctx.moveTo(...pts[0]);
+    for (const pt of pts.slice(1)) ctx.lineTo(...pt);
+    ctx.closePath();
+    ctx.fill();
+  }
+  for (const s of sheets) {
+    const cx = s.x + cw / 2 + o.rand(-0.08, 0.08) * cw;
+    const cy = s.y + ch / 2 + o.rand(-0.08, 0.08) * ch;
+    const m = Math.min(cw, ch);
+    const p = new Path2D();
+    const t = rng();
+    if (t < 0.45) {
+      // Frond rising from the bottom of the sheet, sometimes with side branches.
+      const a = -Math.PI / 2 + o.rand(-0.45, 0.45);
+      const len = m * o.rand(0.7, 0.9);
+      const bx = cx - (Math.cos(a) * len) / 2;
+      const by = cy - (Math.sin(a) * len) / 2;
+      const bend = o.rand(-0.18, 0.18);
+      const lobes = 2 + Math.floor(rng() * 3);
+      frond(p, bx, by, len, m * o.rand(0.2, 0.27), a, lobes, bend, o.rand(0, TAU));
+      if (rng() < 0.5) {
+        for (const side of [-1, 1]) {
+          const tt = o.rand(0.3, 0.55);
+          frond(p, bx + Math.cos(a) * len * tt, by + Math.sin(a) * len * tt, len * o.rand(0.35, 0.5), m * 0.12, a + side * o.rand(0.55, 0.85), 2 + Math.floor(rng() * 2), -side * 0.1, o.rand(0, TAU));
+        }
+      }
+    } else if (t < 0.75) {
+      star(p, cx, cy, m * o.rand(0.3, 0.4), 5 + Math.floor(rng() * 4), o.rand(0, TAU), o.rand(0, TAU));
+    } else {
+      // A spray of leaves from one point.
+      const leaves = 3 + Math.floor(rng() * 3);
+      const base = o.rand(0, TAU);
+      for (let q = 0; q < leaves; q++) {
+        const a = base + (q / leaves) * TAU + o.rand(-0.2, 0.2);
+        frond(p, cx, cy, m * o.rand(0.3, 0.42), m * o.rand(0.08, 0.12), a, 0, o.rand(-0.15, 0.15), o.rand(0, TAU));
+      }
+    }
+    ctx.fillStyle = contrast(s.col);
+    ctx.fill(p);
+  }
+  // Loose confetti: little stars, blobs and leaves dropped across the seams.
+  const bits = spread(o, Math.round((4 + o.detail * 2.2) * (o.W * o.H) / 1.5e6 / (k * k)), 0.02);
+  for (const [x, y] of bits) {
+    const sheet = sheets[Math.min(rows - 1, Math.floor(y / ch)) * cols + Math.min(cols - 1, Math.floor(x / cw))];
+    const r = Math.min(cw, ch) * o.rand(0.04, 0.08);
+    const p = new Path2D();
+    const t = rng();
+    if (t < 0.35) star(p, x, y, r, 5 + Math.floor(rng() * 3), o.rand(0, TAU), o.rand(0, TAU));
+    else if (t < 0.7) blob(p, x, y, r * 0.75, o.rand(0, TAU));
+    else frond(p, x, y, r * 2.4, r * 0.55, o.rand(0, TAU), 0, o.rand(-0.2, 0.2), 0);
+    ctx.fillStyle = contrast(sheet ? sheet.col : o.bg);
+    ctx.fill(p);
+  }
+}, { thumb: { scale: 1.2 } });
+
+def('atomic', 'Atomic Age', 'art', (ctx, o) => {
+  const { rng } = o;
+  const c = 140 * o.scale;
+  const line = contrastInk(o);
+  const skip = 0.34 - o.detail * 0.03;
+  const fills = others(o.ink, line).length ? others(o.ink, line) : [line];
+  const lw = c * 0.022;
+  const mix = Math.floor(rng() * 3); // which motifs lead: 0 bursts, 1 boomerangs, 2 even
+  const cols = Math.ceil(o.W / c) + 2;
+  const rows = Math.ceil(o.H / c) + 2;
+  ctx.lineCap = 'round';
+  ctx.lineJoin = 'round';
+
+  const burst = (x, y, r, spikes, rot, col) => {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw;
+    ctx.beginPath();
+    for (let q = 0; q < spikes; q++) {
+      const a = rot + (q / spikes) * TAU;
+      const len = q & 1 ? r * 0.55 : r;
+      ctx.moveTo(x + Math.cos(a) * r * 0.12, y + Math.sin(a) * r * 0.12);
+      ctx.lineTo(x + Math.cos(a) * len, y + Math.sin(a) * len);
+    }
+    ctx.stroke();
+    disc(ctx, x, y, r * 0.1, col);
+  };
+  const sputnik = (x, y, r, rot, col, dotCol) => {
+    const arms = 3 + Math.floor(o.hash(x, y, 9) * 4);
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw * 0.8;
+    ctx.beginPath();
+    for (let q = 0; q < arms; q++) {
+      const a = rot + (q / arms) * TAU;
+      ctx.moveTo(x, y);
+      ctx.lineTo(x + Math.cos(a) * r, y + Math.sin(a) * r);
+    }
+    ctx.stroke();
+    for (let q = 0; q < arms; q++) {
+      const a = rot + (q / arms) * TAU;
+      disc(ctx, x + Math.cos(a) * r, y + Math.sin(a) * r, r * 0.12, dotCol);
+    }
+    disc(ctx, x, y, r * 0.3, dotCol);
+  };
+  // The classic lopsided boomerang: two tapered arms, one longer than the other.
+  const boomerang = (x, y, r, rot, col) => {
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.scale(r, r);
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    ctx.moveTo(-0.95, -0.2);
+    ctx.quadraticCurveTo(-0.6, 0.5, 0.05, 0.38);
+    ctx.quadraticCurveTo(0.7, 0.28, 1.1, -0.5);
+    ctx.quadraticCurveTo(0.55, 0.02, 0.02, 0.08);
+    ctx.quadraticCurveTo(-0.45, 0.1, -0.95, -0.2);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+  };
+  const atom = (x, y, r, rot, col, nucleus) => {
+    ctx.strokeStyle = col;
+    ctx.lineWidth = lw * 0.8;
+    for (let q = 0; q < 3; q++) {
+      ctx.beginPath();
+      ctx.ellipse(x, y, r, r * 0.32, rot + (q * Math.PI) / 3, 0, TAU);
+      ctx.stroke();
+    }
+    disc(ctx, x, y, r * 0.16, nucleus);
+  };
+  const sparkle = (x, y, r, rot, col) => {
+    ctx.fillStyle = col;
+    ctx.beginPath();
+    for (let q = 0; q < 4; q++) {
+      const a = rot + (q * Math.PI) / 2;
+      const b = a + Math.PI / 2;
+      const p1 = [x + Math.cos(a) * r, y + Math.sin(a) * r];
+      const p2 = [x + Math.cos(b) * r, y + Math.sin(b) * r];
+      if (!q) ctx.moveTo(...p1);
+      ctx.quadraticCurveTo(x, y, ...p2);
+    }
+    ctx.closePath();
+    ctx.fill();
+  };
+  const kidney = (x, y, r, rot, col) => {
+    const p = new Path2D();
+    wobbleCircle(p, 0, 0, r, 0.22, [rot * 3, rot * 5, rot * 7]);
+    ctx.save();
+    ctx.translate(x, y);
+    ctx.rotate(rot);
+    ctx.scale(1.35, 0.8);
+    ctx.fillStyle = col;
+    ctx.fill(p);
+    ctx.restore();
+  };
+
+  // Bigger soft shapes first, line motifs on top.
+  const items = [];
+  for (let j = -1; j < rows; j++) {
+    for (let i = -1; i < cols; i++) {
+      const h = (q) => o.hash(i, j, q);
+      if (h(0) < skip) continue;
+      const x = (i + 0.5 + (h(1) - 0.5) * 0.55) * c + (j & 1 ? c / 2 : 0);
+      const y = (j + 0.5 + (h(2) - 0.5) * 0.55) * c * 0.9;
+      const r = c * (0.28 + h(3) * 0.16);
+      const rot = h(4) * TAU;
+      let t = h(5);
+      if (mix === 0) t = t < 0.45 ? 0.05 : t;
+      if (mix === 1) t = t < 0.35 ? 0.45 : t;
+      const kind = t < 0.22 ? 'burst' : t < 0.36 ? 'sputnik' : t < 0.55 ? 'boomerang' : t < 0.66 ? 'atom' : t < 0.82 ? 'sparkle' : 'kidney';
+      const col = fills[Math.floor(h(6) * fills.length)];
+      const col2 = cyc(fills, Math.floor(h(6) * fills.length) + 1);
+      items.push({ x, y, r, rot, kind, col, col2, layer: kind === 'kidney' || kind === 'boomerang' ? 0 : 1 });
+    }
+  }
+  for (const layer of [0, 1]) {
+    for (const it of items) {
+      if (it.layer !== layer) continue;
+      const { x, y, r, rot } = it;
+      if (it.kind === 'burst') burst(x, y, r, 2 * (5 + Math.floor((rot / TAU) * 4)), rot, line);
+      else if (it.kind === 'sputnik') sputnik(x, y, r * 0.8, rot, line, it.col);
+      else if (it.kind === 'boomerang') boomerang(x, y, r * 0.95, rot, it.col);
+      else if (it.kind === 'atom') atom(x, y, r * 0.85, rot, line, it.col);
+      else if (it.kind === 'sparkle') sparkle(x, y, r * 0.55, rot, it.col);
+      else kidney(x, y, r * 0.6, rot, it.col2);
+    }
+  }
+}, { thumb: { scale: 1.6 } });

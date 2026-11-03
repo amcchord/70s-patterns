@@ -215,14 +215,16 @@ h3:first-child { margin-top: 0; }
 .style[aria-pressed='true'] canvas { box-shadow: 0 0 0 3px var(--orange); }
 .style[aria-pressed='true'] span { font-weight: 700; }
 
-.tabs { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 10px; }
+.tabs { display: flex; gap: 5px; margin-bottom: 10px; overflow-x: auto; scrollbar-width: none; }
 .tab {
+  flex: 0 0 auto;
   border: 2px solid var(--line);
   border-radius: 999px;
   background: transparent;
-  padding: 3px 11px;
-  font-size: 12.5px;
+  padding: 3px 10px;
+  font-size: 12px;
   font-weight: 700;
+  white-space: nowrap;
   cursor: pointer;
 }
 .tab:hover { background: color-mix(in srgb, var(--gold) 35%, transparent); }
@@ -317,6 +319,7 @@ select {
 
 .foot { padding: 6px 24px 36px; text-align: center; color: var(--ink-soft); font-size: 13px; }
 .foot p { margin: 4px 0; }
+.foot .keys { line-height: 2; }
 .foot a { color: var(--orange); font-weight: 700; }
 kbd {
   font-family: ui-monospace, Menlo, monospace;

@@ -98,6 +98,74 @@ export const PALETTES = [
   P('soft', 'terracotta', 'Terracotta', ['#f5e8dc', '#2f4858', '#8d3b2b', '#c9674a', '#e8a97f']),
 ];
 
+// ---------------------------------------------------------------- invented palettes
+// Harmonious random palettes, built in OKLCH so lightness steps look even
+// across hues. rand() is any [0, 1) source.
+
+function oklchToHex(L, C, hDeg) {
+  // Reduce chroma until the colour fits in sRGB, so hues never clip to odd shades.
+  for (let c = C; c >= 0; c -= 0.005) {
+    const h = (hDeg * Math.PI) / 180;
+    const a = c * Math.cos(h);
+    const b = c * Math.sin(h);
+    const l_ = (L + 0.3963377774 * a + 0.2158037573 * b) ** 3;
+    const m_ = (L - 0.1055613458 * a - 0.0638541728 * b) ** 3;
+    const s_ = (L - 0.0894841775 * a - 1.291485548 * b) ** 3;
+    const lin = [
+      4.0767416621 * l_ - 3.3077115913 * m_ + 0.2309699292 * s_,
+      -1.2684380046 * l_ + 2.6097574011 * m_ - 0.3413193965 * s_,
+      -0.0041960863 * l_ - 0.7034186147 * m_ + 1.707614701 * s_,
+    ];
+    if (lin.every((v) => v >= -1e-4 && v <= 1 + 1e-4)) {
+      return `#${lin
+        .map((v) => {
+          const x = Math.min(1, Math.max(0, v));
+          const g = x <= 0.0031308 ? 12.92 * x : 1.055 * x ** (1 / 2.4) - 0.055;
+          return Math.round(g * 255).toString(16).padStart(2, '0');
+        })
+        .join('')}`;
+    }
+  }
+  return '#808080';
+}
+
+export function inventPalette(rand = Math.random) {
+  const pick = (arr) => arr[Math.floor(rand() * arr.length)];
+  const r = (a, b) => a + rand() * (b - a);
+  const scheme = pick(['analogous', 'complement', 'triad', 'split', 'retro', 'earthy']);
+  let h0 = rand() * 360;
+  let hues;
+  if (scheme === 'analogous') hues = [h0, h0 + 28, h0 + 56, h0 - 26];
+  else if (scheme === 'complement') hues = [h0, h0 + 18, h0 + 180, h0 + 200];
+  else if (scheme === 'triad') hues = [h0, h0 + 120, h0 + 240, h0 + 25];
+  else if (scheme === 'split') hues = [h0, h0 + 150, h0 + 210, h0 + 30];
+  else if (scheme === 'retro') {
+    h0 = r(30, 85); // oranges, golds and browns with a cool accent
+    hues = [h0, h0 + 20, h0 - 18, r(185, 215)];
+  } else {
+    h0 = r(40, 120);
+    hues = [h0, h0 + 30, h0 - 25, h0 + 70];
+  }
+  const muted = scheme === 'earthy' ? 0.55 : 1;
+  const dark = rand() < 0.2;
+  const n = 3 + Math.floor(rand() * 3);
+  const bg = dark ? oklchToHex(r(0.17, 0.24), r(0.02, 0.06), hues[2] + 180) : oklchToHex(r(0.93, 0.97), r(0.015, 0.04), pick([h0, 75, 85]));
+  // Spread lightness so each palette has a dark anchor, mid tones and a light accent.
+  const Ls = dark ? [0.86, 0.74, 0.64, 0.55, 0.47] : [0.3, 0.52, 0.64, 0.74, 0.83];
+  const inks = [];
+  for (let k = 0; k < n; k++) {
+    const L = Ls[Math.round((k * (Ls.length - 1)) / Math.max(1, n - 1))] + r(-0.03, 0.03);
+    const C = (L < 0.4 ? r(0.05, 0.1) : L > 0.78 ? r(0.05, 0.11) : r(0.1, 0.17)) * muted;
+    inks.push(oklchToHex(L, C, (hues[k % hues.length] + r(-8, 8) + 360) % 360));
+  }
+  // Mix the order so the darkest ink is not always first.
+  for (let k = inks.length - 1; k > 0; k--) {
+    const j = Math.floor(rand() * (k + 1));
+    [inks[k], inks[j]] = [inks[j], inks[k]];
+  }
+  return [bg, ...inks];
+}
+
 export const PALETTES_BY_ID = Object.fromEntries(PALETTES.map((p) => [p.id, p]));
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
 export { PATTERNS };

@@ -1,6 +1,6 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
-  renderPattern, exportPNG, randomSeed,
+  renderPattern, exportPNG, randomSeed, inventPalette,
 } from './core.js?v=2';
 
 const $ = (id) => document.getElementById(id);
@@ -341,14 +341,33 @@ function newSeed() {
 function surprise() {
   remember();
   const rnd = (arr) => arr[Math.floor(Math.random() * arr.length)];
-  const pal = rnd(PALETTES);
   state.style = rnd(PATTERNS).id;
-  state.palette = pal.id;
-  state.colors = [...pal.colors];
+  if (Math.random() < 0.25) {
+    state.palette = 'custom';
+    state.colors = inventPalette();
+  } else {
+    const pal = rnd(PALETTES);
+    state.palette = pal.id;
+    state.colors = [...pal.colors];
+  }
   state.seed = randomSeed();
   state.scale = Math.round((0.7 + Math.random() * 0.8) * 20) / 20;
   state.detail = 3 + Math.floor(Math.random() * 6);
   state.rotation = Math.random() < 0.2 ? Math.round((Math.random() - 0.5) * 60) : 0;
+  commit();
+}
+
+function invent() {
+  remember();
+  state.palette = 'custom';
+  state.colors = inventPalette();
+  commit();
+}
+
+function stepStyle(dir) {
+  const i = PATTERNS.findIndex((p) => p.id === state.style);
+  remember();
+  state.style = PATTERNS[(i + dir + PATTERNS.length) % PATTERNS.length].id;
   commit();
 }
 
@@ -405,6 +424,7 @@ async function download() {
 function bind() {
   $('generate').addEventListener('click', newSeed);
   $('surprise').addEventListener('click', surprise);
+  $('invent').addEventListener('click', invent);
   $('back').addEventListener('click', back);
   $('download').addEventListener('click', download);
   $('share').addEventListener('click', async () => {
@@ -471,6 +491,9 @@ function bind() {
       newSeed();
     } else if (e.key === 'ArrowLeft') back();
     else if (e.key === 's' || e.key === 'S') surprise();
+    else if (e.key === 'p' || e.key === 'P') invent();
+    else if (e.key === ']') stepStyle(1);
+    else if (e.key === '[') stepStyle(-1);
   });
   window.addEventListener('hashchange', () => {
     const s = fromHash();
