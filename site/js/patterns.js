@@ -2429,6 +2429,72 @@ def('kaleido', 'Kaleidoscope', '70s', (ctx, o) => {
   ctx.stroke(grout);
 }, { thumb: { scale: 1.2 }, fit: true });
 
+def('parquet', 'Parquet', '70s', (ctx, o) => {
+  const { rng } = o;
+  const w = 34 * o.scale;
+  const r = 2 + Math.round(o.detail / 3); // plank length in widths
+  const basket = rng() < 0.35;
+  const diagonal = !basket && rng() < 0.6;
+  const grout = darkest(o.colors);
+  const gap = w * 0.07;
+  const tone = tones(o, 0.25);
+  const shade = rng() < 0.5; // planks of one direction a touch darker, like light across a floor
+  // Colour by row or block (stripes), as shades of one wood, or plank by plank (mosaic).
+  const roll = rng();
+  const mode = roll < 0.5 ? 'stripes' : roll < 0.78 ? 'wood' : 'mosaic';
+  const wood = tone.pick(rng(), [grout]);
+  const paths = new Map();
+  const add = (col) => paths.get(col) || paths.set(col, new Path2D()).get(col);
+  // group: hash for the block or row; h: hash for this plank.
+  const plank = (x, y, pw, ph, group, h, darker) => {
+    let col;
+    if (mode === 'stripes') col = tone.pick(group, [grout]);
+    else if (mode === 'wood') col = h < 0.5 ? mixHex(wood, o.bg, h * 0.5) : mixHex(wood, grout, (h - 0.5) * 0.5);
+    else col = tone.pick(h, [grout]);
+    if (darker) col = mixHex(col, grout, 0.12);
+    add(col).rect(x + gap / 2, y + gap / 2, pw - gap, ph - gap);
+  };
+
+  withTurn(ctx, o, diagonal ? Math.PI / 4 : 0, (W, H) => {
+    ctx.fillStyle = grout;
+    ctx.fillRect(-w, -w, W + 2 * w, H + 2 * w);
+    if (basket) {
+      const b = r * w;
+      for (let j = -1; j * b < H + b; j++) {
+        for (let i = -1; i * b < W + b; i++) {
+          const across = (i + j) & 1;
+          const group = o.hash(i, j, 99);
+          for (let k = 0; k < r; k++) {
+            const h = o.hash(i, j, k);
+            if (across) plank(i * b, j * b + k * w, b, w, group, h, false);
+            else plank(i * b + k * w, j * b, w, b, group, h, shade);
+          }
+        }
+      }
+    } else {
+      // Herringbone: horizontal planks at (t + s·r, t − s·r) and vertical ones beside them,
+      // in units of the plank width. The two lattice vectors (1, 1) and (r, −r) tile the plane.
+      const X0 = -2 * r, X1 = W / w + 2 * r, Y0 = -2 * r, Y1 = H / w + 2 * r;
+      const t0 = Math.floor((X0 + Y0) / 2), t1 = Math.ceil((X1 + Y1) / 2);
+      const s0 = Math.floor((X0 - Y1) / (2 * r)), s1 = Math.ceil((X1 - Y0) / (2 * r));
+      for (let s = s0; s <= s1; s++) {
+        for (let t = t0; t <= t1; t++) {
+          const hx = t + s * r, hy = t - s * r;
+          if (hx > X1 || hx < X0 - r || hy > Y1 || hy < Y0 - r) continue;
+          // Each staircase s is one zigzag row.
+          const group = o.hash(s, 0, 99);
+          plank(hx * w, hy * w, r * w, w, group, o.hash(t, s, 0), false);
+          plank((hx + r) * w, (hy + 1 - r) * w, w, r * w, group, o.hash(t, s, 1), shade);
+        }
+      }
+    }
+    for (const [col, p] of paths) {
+      ctx.fillStyle = col;
+      ctx.fill(p);
+    }
+  });
+});
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2458,5 +2524,6 @@ const ABOUT = {
   cutouts: 'Paper cut-out fronds and stars, after Matisse.',
   atomic: 'Mid-century starbursts, boomerangs, atoms and sparkles.',
   kaleido: 'A mirrored psychedelic mandala, alone or as glazed tiles whose mirrors meet.',
+  parquet: 'Herringbone and basketweave parquet, laid plank by plank with dark grout.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';
