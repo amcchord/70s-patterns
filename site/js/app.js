@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=20';
+} from './core.js?v=21';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -173,6 +173,7 @@ function drawPreview() {
     preview.height = ph;
   }
   renderPattern(preview.getContext('2d'), spec, pw, ph);
+  if (!previewVisible) drawMini();
   if (!peek && !varPending) {
     varPending = true;
     requestAnimationFrame(() => {
@@ -180,6 +181,29 @@ function drawPreview() {
       drawVariations();
     });
   }
+}
+
+// ---------------------------------------------------------------- mini preview
+// On narrow screens the controls sit below the preview. While the preview is
+// scrolled away, a small copy floats in the corner so every tap shows its result.
+
+let previewVisible = true;
+function drawMini() {
+  const mini = $('mini');
+  const show = !previewVisible && !window.matchMedia('(min-width: 960px)').matches;
+  mini.hidden = !show;
+  if (!show) return;
+  const [ow, oh] = outputSize();
+  const aspect = ow / oh;
+  const h = aspect >= 1 ? 84 : 120;
+  const w = Math.round(Math.min(150, h * aspect));
+  const c = mini.firstElementChild;
+  const k = dpr();
+  c.style.width = `${w}px`;
+  c.style.height = `${Math.round(w / aspect)}px`;
+  c.width = Math.round(w * k);
+  c.height = Math.round((w / aspect) * k);
+  renderPattern(c.getContext('2d'), peek ? { ...state, ...peek } : state, c.width, c.height);
 }
 
 // ---------------------------------------------------------------- variations
@@ -843,6 +867,11 @@ function bind() {
     }
   });
   new ResizeObserver(schedule).observe(frame);
+  new IntersectionObserver(([entry]) => {
+    previewVisible = entry.isIntersecting;
+    drawMini();
+  }, { threshold: 0.15 }).observe(preview);
+  $('mini').addEventListener('click', () => preview.scrollIntoView({ behavior: 'smooth', block: 'center' }));
 }
 
 buildStyles();
