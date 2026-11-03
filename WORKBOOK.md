@@ -24,6 +24,7 @@ scripts/deploy.sh     rsync site/ -> mcchord.net:/var/www/mcchord.net/patterns/ 
 
 ```bash
 python3 scripts/serve.py                                        # no-cache preview on :8771 (also .claude/launch.json "patterns")
+node scripts/check.mjs                                          # palette rules, inventor, vintage, style registry
 python3 scripts/bump.py                                         # bump ?v=N cache busters after CSS/JS changes
 ./scripts/deploy.sh                                             # publish (only when asked)
 ```

@@ -66,6 +66,8 @@ python3 scripts/serve.py
 
 Then open http://localhost:8771/. The script is a plain static server that sends `Cache-Control: no-store`, so edits to the modules always load. Opening `index.html` straight from disk won't work, because browsers block ES modules on `file://` URLs.
 
+`node scripts/check.mjs` runs fast checks that need no browser. It confirms that every palette follows the colour rules, that Invent palette and Vintage always return valid colours, and that every style is registered with a description.
+
 `site/sheet.html` is a development contact sheet that renders many styles, seeds and palettes at once, for example `sheet.html?styles=waves,ogee&seeds=a,b,c&palette=harvest,disco&rot=20`. It is not deployed.
 
 ## Add a pattern

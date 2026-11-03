@@ -9,6 +9,8 @@ the public repo `amcchord/70s-patterns`. Workspace-wide rules live in
 - Patterns must stay deterministic and resolution independent. Use `o.rng()`
   in a fixed order for global choices and `o.hash(i, j, k)` per cell. Never let
   randomness depend on output size, the strip being drawn, or culling.
+- Run `node scripts/check.mjs` after touching palettes or the registry; it
+  enforces the palette rules documented above `PALETTES` in `core.js`.
 - Verify visually with `site/sheet.html` (contact sheet). Check 8K export with
   `exportPNG` from `site/js/core.js`. See `WORKBOOK.md` for commands.
 - Production is a static directory on the shared mcchord.net web server.
