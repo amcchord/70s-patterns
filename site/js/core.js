@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=12';
+import { PATTERNS } from './patterns.js?v=13';
 
 export const MAX_SIDE = 8192;
 

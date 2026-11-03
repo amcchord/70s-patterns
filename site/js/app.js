@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
-  renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels,
-} from './core.js?v=12';
+  renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
+} from './core.js?v=13';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -337,6 +337,7 @@ function buildChips() {
     input.addEventListener('input', () => {
       state.colors[i] = input.value;
       input.title = `${i === 0 ? 'Background' : `Colour ${i + 1}`} · ${input.value}`;
+      colourTip();
       state.palette = 'custom';
       commit({ chips: false });
     });
@@ -363,6 +364,25 @@ function buildChips() {
     root.append(chip);
   });
   $('addColor').disabled = state.colors.length >= 8;
+  colourTip();
+}
+
+// A quiet warning when two colours are too close to tell apart in a pattern.
+function colourTip() {
+  const c = state.colors;
+  let worst = null;
+  for (let i = 0; i < c.length; i++) {
+    for (let j = i + 1; j < c.length; j++) {
+      const d = deltaE(c[i], c[j]);
+      if (d < 7 && (!worst || d < worst[2])) worst = [i, j, d];
+    }
+  }
+  const tip = $('colourTip');
+  tip.hidden = !worst;
+  if (worst) {
+    const name = (k) => (k === 0 ? 'the background' : `colour ${k + 1}`);
+    tip.textContent = `${name(worst[0])[0].toUpperCase()}${name(worst[0]).slice(1)} and ${name(worst[1])} are nearly the same, so shapes between them will blur.`;
+  }
 }
 
 // ---------------------------------------------------------------- controls
@@ -681,6 +701,20 @@ function bind() {
       commit({ chips: false });
     });
   }
+  // Order the inks by lightness, so banded styles run as smooth gradients. Each press flips direction.
+  $('sortInks').addEventListener('click', () => {
+    remember();
+    const lum = (hex) => {
+      const n = parseInt(hex.slice(1), 16);
+      return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+    };
+    const inks = state.colors.slice(1);
+    const up = inks.slice().sort((a, b) => lum(a) - lum(b));
+    const sorted = inks.every((c, k) => c === up[k]) ? up.reverse() : up;
+    state.colors = [state.colors[0], ...sorted];
+    state.palette = 'custom';
+    commit();
+  });
   $('shuffle').addEventListener('click', () => {
     remember();
     const c = state.colors.slice();

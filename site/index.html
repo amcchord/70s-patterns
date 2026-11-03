@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Shrikhand&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=12">
+  <link rel="stylesheet" href="css/style.css?v=13">
 </head>
 <body>
   <header class="masthead">
@@ -58,12 +58,14 @@
           <div id="chips" class="chips" aria-label="Edit colours"></div>
           <button id="copyHex" class="link" title="Copy these colours as hex codes">Copy hex</button>
         </div>
+        <p class="tip" id="colourTip" hidden></p>
         <div class="row">
           <button id="invent" class="btn small" title="Make up a new harmonious palette (P)">Invent palette</button>
           <button id="fromImage" class="btn small" title="Take a palette from a photo, or drop one on the page. It stays in your browser.">From image&hellip;</button>
           <input type="file" id="imageFile" accept="image/*" hidden>
           <button id="flip" class="btn small" title="Swap the background with its strongest contrast: day to night and back">Flip ground</button>
-          <button id="shuffle" class="btn small" title="Shuffle colour order (the first colour is the background)">Shuffle order</button>
+          <button id="sortInks" class="btn small" title="Order the colours by lightness for smooth bands; press again to reverse">Sort</button>
+          <button id="shuffle" class="btn small" title="Shuffle colour order (the first colour is the background)">Shuffle</button>
           <button id="addColor" class="btn small">+ Colour</button>
         </div>
       </section>
@@ -104,6 +106,6 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=12"></script>
+  <script type="module" src="js/app.js?v=13"></script>
 </body>
 </html>

@@ -313,6 +313,8 @@ h3:first-child { margin-top: 0; }
 @media (hover: none) { .chip .remove { opacity: 1; } }
 
 .row { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.tip { margin: 8px 0 0; font-size: 12.5px; color: var(--rust); }
+.tip[hidden] { display: none; }
 
 .slider { display: grid; grid-template-columns: 62px 1fr 52px; align-items: center; gap: 10px; margin: 6px 0; font-weight: 500; }
 .slider output { text-align: right; font-variant-numeric: tabular-nums; color: var(--ink-soft); font-size: 13px; }
