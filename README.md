@@ -14,14 +14,14 @@ Everything runs in the browser. There is no server-side code, no build step and 
   - *1970s:* Groovy Waves, Rainbow Scales, Petal Drops, Loop Chain, Ogee Onions, Diamond Nest, Liquid Groove, Flower Power, Supergraphic, Mod Targets, Rainbow Tiles, Sunrise, Kaleidoscope, Parquet
   - *Bauhaus, geometric & op:* Bauhaus Blocks, Kaleido Quilt, Chevron Op, Truchet Rings, Tumbling Blocks, Op Squares, Op Bulge, Op Lines, Halftone
   - *Art & abstract:* Composition, Floating Circles and Color Study (after Kandinsky), De Stijl Grid (after Mondrian), Cut-Outs (after Matisse), Atomic Age
-- **43 curated palettes in four groups:** Seventies, Modern art, Pop & op, and Soft. You can edit any colour, add or remove colours, or shuffle their order. The first colour is the background.
+- **47 curated palettes in four groups:** Seventies, Modern art, Pop & op, and Soft. You can edit any colour, add or remove colours, or shuffle their order. The first colour is the background.
 - **Invent palette** makes up a new palette. Half the time it remixes a curated palette, turning its hues in OKLCH while keeping its value structure. The rest of the time it composes one from pigment rules. Results whose colours sit too close together are rejected and tried again.
 
 ## Palettes
 
 Colour carries these patterns, so every curated palette follows the same rules:
 
-- **Real references.** Each palette is drawn from the period or artist it names, for example 1970s appliance enamels (*Kitchen '74*), Mondrian's red, yellow and blue (*De Stijl*), Kandinsky's *Composition VIII* (*Kandinsky*), Matisse's gouache cut-outs (*Paper Cut-Outs*), Memphis laminates and stencil-printer inks (*Zine Inks*).
+- **Real references.** Each palette is drawn from the period or artist it names, for example 1970s appliance enamels (*Kitchen '74*), Mondrian's red, yellow and blue (*De Stijl*), Kandinsky's *Composition VIII* (*Kandinsky*), Matisse's gouache cut-outs (*Paper Cut-Outs*), Memphis laminates, Sonia Delaunay, Hilma af Klint, Vasarely and Bridget Riley's later colour, and stencil-printer inks (*Zine Inks*).
 - **Paper or ink grounds.** Backgrounds are warm off-whites or deep inks, never pure white or black.
 - **A value structure.** Every palette has a dark anchor, mid tones and a light accent, so a pattern still reads in greyscale.
 - **Pigment-true hues.** Reds lean vermilion or crimson, blues ultramarine or cobalt, and yellows cadmium or ochre, rather than screen primaries.

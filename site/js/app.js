@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=18';
+} from './core.js?v=19';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -432,6 +432,8 @@ function syncControls({ chips = true } = {}) {
   const gen = PATTERNS_BY_ID[state.style];
   $('aboutName').textContent = gen.name;
   $('aboutText').textContent = gen.about;
+  const palName = PALETTES_BY_ID[state.palette]?.name || 'custom colours';
+  preview.setAttribute('aria-label', `${gen.name} pattern in ${palName}${state.age ? `, ${state.age}% vintage` : ''}. ${gen.about}`);
   for (const id of ['scale', 'detail', 'rotation', 'age']) {
     $(id).value = state[id];
     const v = state[id];

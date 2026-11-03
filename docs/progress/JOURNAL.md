@@ -69,4 +69,15 @@
   - Palette names fit at phone width.
 - Tooling: `scripts/serve.py`, a no-cache preview server, after a stale cached module hid a change during QA; and `scripts/bump.py` for cache busters.
 
-**Next:** possible extras are seamless-tile export and SVG export for the vector styles.
+- Final hour:
+  - Vintage slider: aging done in OKLab, so blues fade to slate rather than purple.
+  - Sort inks, and a warning when two colours nearly match.
+  - Full screen view.
+  - Hover previews for styles and palettes.
+  - Parquet and Halftone styles.
+  - Four artist palettes: Delaunay, Af Klint, Vasarely and Riley Colour.
+  - Screen-reader description of the preview.
+  - Strips now yield with a MessageChannel, so exports don't crawl in background tabs.
+- Totals: 29 styles, 47 palettes.
+
+**Next:** possible extras are seamless-tile export for the lattice styles and SVG export for the vector styles.

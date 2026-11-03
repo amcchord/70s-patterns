@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=18';
+import { PATTERNS } from './patterns.js?v=19';
 
 export const MAX_SIDE = 8192;
 
@@ -91,6 +91,10 @@ export const PALETTES = [
   P('art', 'midcentury', 'Mid-Century', ['#f1e8d5', '#2c2b29', '#d2552c', '#2d7286', '#e1ad37', '#7d8f3c']),
   P('art', 'ochre', 'Ochre & Slate', ['#e8dbbf', '#3a4a57', '#7b3529', '#c46a3c', '#dcab55', '#6f8b88']),
   P('art', 'memphis', 'Memphis', ['#f7f3ea', '#141414', '#f29ea4', '#2c5fd9', '#7fd1cc', '#f7d046']),
+  P('art', 'delaunay', 'Delaunay', ['#eee5d2', '#1c2c66', '#cf4529', '#eeb036', '#2a8569', '#e58aa3', '#151414']),
+  P('art', 'afklint', 'Af Klint', ['#f1e6d4', '#3a6553', '#e3a39b', '#efc650', '#6d8fc6', '#cf7339']),
+  P('art', 'vasarely', 'Vasarely', ['#16152b', '#2c3b9c', '#55a2d6', '#e44d76', '#f3c544', '#efebe1']),
+  P('art', 'rileycolour', 'Riley Colour', ['#f3efe6', '#3a4a8a', '#1d8c87', '#86b05d', '#d69a3b', '#e47b9f']),
 
   // Pop & op: disco and lava lamps, print-shop inks, and black-and-white optics.
   P('pop', 'disco', 'Disco Inferno', ['#24102f', '#f0388a', '#f57f20', '#f9cf2e', '#2fb8d6', '#7f48d8']),

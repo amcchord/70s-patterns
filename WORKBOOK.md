@@ -13,7 +13,7 @@ site/                 the deployable static site
   index.html          page shell (scripts/bump.py moves ?v=N on css/js)
   js/app.js           UI: state <-> URL hash, preview, variations, thumbnails, palettes, shelf, export
   js/core.js          PRNG/hash, palettes + palette rules, inventPalette(), renderPattern(), exportPNG()
-  js/patterns.js      the 26 pattern generators, drawing helpers and ABOUT descriptions
+  js/patterns.js      the 29 pattern generators, drawing helpers and ABOUT descriptions
   css/style.css       70s theme, light and dark
   sheet.html          dev contact sheet (not deployed)
   og.png, favicon.svg social preview and icon
@@ -41,6 +41,6 @@ The site is static and lives on the shared mcchord.net server (`ssh mcchord.net`
 ## Known limits
 
 - Exports need `CompressionStream`, which is in all current browsers. Older browsers fall back to `canvas.toBlob`, which is limited by their maximum canvas size.
-- 8K UHD export times on a laptop (2026-11-03, all 27 styles): 0.6–1.8 s for most; Composition, Floating Circles, Op Bulge and Op Lines take 2.5–3 s; Liquid Groove takes 4.2 s. Strips yield with a MessageChannel, not setTimeout, so exports don't slow down in background tabs.
+- 8K UHD export times on a laptop (2026-11-03, measured on the first 27 styles; Parquet and Halftone are under 1 s at default settings, Halftone about 2 s at its finest): 0.6–1.8 s for most; Composition, Floating Circles, Op Bulge and Op Lines take 2.5–3 s; Liquid Groove takes 4.2 s. Strips yield with a MessageChannel, not setTimeout, so exports don't slow down in background tabs.
 - Export strips use a software-rasterised canvas (`willReadFrequently`), so every strip is drawn the same way.
 - Saved patterns ("Your shelf") live in the viewer's localStorage only; they are not synced anywhere.
