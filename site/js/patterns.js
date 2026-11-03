@@ -2701,23 +2701,29 @@ def('homage', 'Homage', 'art', (ctx, o) => {
     // Scale only moderates a single homage; it should always command the frame.
     const size = Math.min(o.W, o.H) * 0.92 * (0.7 + 0.3 * Math.min(1, o.scale));
     const set = pickSet(1);
+    // Overfill, so a rotated frame's corners stay covered.
     ctx.fillStyle = set[0];
-    ctx.fillRect(-o.px, -o.px, o.W + 2 * o.px, o.H + 2 * o.px);
+    ctx.fillRect(-o.W, -o.H, 3 * o.W, 3 * o.H);
     nest((o.W - size) / 2, (o.H - size) / 2 - size * 0.02, size, set, layers);
   } else {
     const c = 250 * o.scale;
-    const cols = Math.max(1, Math.round(o.W / c));
-    const cw = o.W / cols;
-    const rows = Math.ceil(o.H / cw);
+    // Upright, whole studies fit the width exactly; turned, they tile a square that covers the frame.
+    const span = o.angle ? Math.hypot(o.W, o.H) : 0;
+    const rw = span || o.W;
+    const rh = span || o.H;
+    const ox = (o.W - rw) / 2;
+    const cols = Math.max(1, Math.round(rw / c));
+    const cw = rw / cols;
+    const rows = Math.ceil(rh / cw);
     const oy = (o.H - rows * cw) / 2;
-    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) nest(i * cw, oy + j * cw, cw, pickSet(1 + i + j * 97), layers);
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) nest(ox + i * cw, oy + j * cw, cw, pickSet(1 + i + j * 97), layers);
     // The outer squares tile edge to edge: widen them a hair so they overlap instead of leaving hairlines.
     const outer = new Map();
     for (const [col] of layers[0]) outer.set(col, new Path2D());
     for (let j = 0; j < rows; j++) {
       for (let i = 0; i < cols; i++) {
         const col = pickSet(1 + i + j * 97)[0];
-        outer.get(col).rect(i * cw - o.px / 2, oy + j * cw - o.px / 2, cw + o.px, cw + o.px);
+        outer.get(col).rect(ox + i * cw - o.px / 2, oy + j * cw - o.px / 2, cw + o.px, cw + o.px);
       }
     }
     layers[0] = outer;
