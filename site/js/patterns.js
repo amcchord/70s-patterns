@@ -43,6 +43,41 @@ function inks(o) {
   return o.ink.length >= 2 ? o.ink : o.colors;
 }
 
+// Colour weighting after the 60-30-10 rule of print design: the ground and one
+// ink lead, a couple support, the rest are accents. The seed decides which ink
+// leads (via the hash, so the rng sequence is untouched). pick(u, avoid) maps a
+// uniform number to a colour and skips anything in avoid when it can.
+function tones(o, ground = 0.3) {
+  const order = o.colors
+    .slice(1)
+    .map((c, k) => [o.hash(7919, k), c])
+    .sort((a, b) => a[0] - b[0])
+    .map((x) => x[1]);
+  const list = [o.bg, ...order];
+  const w = [ground];
+  let x = 1;
+  for (let k = 0; k < order.length; k++, x *= 0.62) w.push(x);
+  const inkSum = w.slice(1).reduce((a, b) => a + b, 0) || 1;
+  for (let k = 1; k < w.length; k++) w[k] = (w[k] / inkSum) * (1 - ground);
+  return {
+    pick(u, avoid = []) {
+      let total = 0;
+      for (let k = 0; k < list.length; k++) if (!avoid.includes(list[k])) total += w[k];
+      // Everything avoided (tiny palettes): at least differ from the first thing to avoid.
+      if (total <= 0) return list.find((c) => c !== avoid[0]) || list[0];
+      let t = u * total;
+      let last = list[0];
+      for (let k = 0; k < list.length; k++) {
+        if (avoid.includes(list[k])) continue;
+        last = list[k];
+        t -= w[k];
+        if (t <= 0) return last;
+      }
+      return last;
+    },
+  };
+}
+
 // Stroke one path several times, widest first, to get perfectly parallel bands.
 // colors[0] runs down the centre line, the last colour forms the outer edge.
 function nestStroke(ctx, path, colors, band) {
@@ -766,14 +801,6 @@ const MOTIFS = [
   },
 ];
 
-function threeColours(L, h0, h1, h2) {
-  const a = Math.floor(h0 * L);
-  const b = (a + 1 + Math.floor(h1 * (L - 1))) % L;
-  let c = (b + 1 + Math.floor(h2 * (L - 1))) % L;
-  if (c === a && L > 2) c = (c + 1) % L === b ? (c + 2) % L : (c + 1) % L;
-  return [a, b, c];
-}
-
 def('bauhaus', 'Bauhaus Blocks', 'geo', (ctx, o) => {
   // Whole tiles across the width; any crop is shared evenly top and bottom.
   const cols = Math.max(1, Math.round(o.W / (115 * o.scale)));
@@ -792,20 +819,22 @@ def('bauhaus', 'Bauhaus Blocks', 'geo', (ctx, o) => {
       tiles.push({ i, j, size });
     }
   }
-  const pal = o.colors;
+  const tone = tones(o);
   for (const t of tiles) {
     const s = t.size * c;
     const h = (k) => o.hash(t.i, t.j, k + 10);
-    const [a, b, cc] = threeColours(pal.length, h(0), h(1), h(2));
+    const a = tone.pick(h(0));
+    const b = tone.pick(h(1), [a]);
+    const cc = tone.pick(h(2), [a, b]);
     const motif = MOTIFS[Math.floor(h(3) * MOTIFS.length)];
     ctx.save();
     ctx.translate(t.i * c, oy + t.j * c);
-    ctx.fillStyle = pal[a];
+    ctx.fillStyle = a;
     ctx.fillRect(0, 0, s + o.px, s + o.px);
     ctx.translate(s / 2, s / 2);
     ctx.rotate((Math.floor(h(4) * 4) * Math.PI) / 2);
     ctx.translate(-s / 2, -s / 2);
-    motif(ctx, s, pal[a], pal[b], pal[cc], o.detail);
+    motif(ctx, s, a, b, cc, o.detail);
     ctx.restore();
   }
 });
@@ -839,16 +868,14 @@ def('quilt', 'Kaleido Quilt', 'geo', (ctx, o) => {
   const { rng } = o;
   const k = 2 + Math.floor(rng() * 3);
   const c = 75 * o.scale;
-  const pal = o.colors;
-  const L = pal.length;
   const quarterP = o.detail * 0.05;
   const block = [];
+  const tone = tones(o);
   for (let b = 0; b < k * k; b++) {
-    const pi = Math.floor(rng() * L);
-    const P = pal[pi];
-    const Q = pal[(pi + 1 + Math.floor(rng() * (L - 1))) % L];
+    const P = tone.pick(rng());
+    const Q = tone.pick(rng(), [P]);
     const t = rng();
-    if (t < quarterP) block.push([P, pal[Math.floor(rng() * L)], Q, pal[Math.floor(rng() * L)]]);
+    if (t < quarterP) block.push([P, tone.pick(rng()), Q, tone.pick(rng())]);
     else if (t < quarterP + 0.1) block.push([P, P, P, P]);
     else block.push(rng() < 0.5 ? [P, P, Q, Q] : [P, Q, Q, P]);
   }
@@ -1572,8 +1599,6 @@ def('colorstudy', 'Color Study', 'art', (ctx, o) => {
   const c0 = 165 * o.scale;
   const rings = 2 + Math.round(o.detail * 0.3);
   const wob = rng() < 0.75 ? o.rand(0.012, 0.028) : 0;
-  const pal = o.colors;
-  const L = pal.length;
   // Whole cells only: the grid fits the frame exactly, like a painted study.
   const cols = Math.max(1, Math.round(o.W / c0));
   const rows = Math.max(1, Math.round(o.H / c0));
@@ -1582,7 +1607,8 @@ def('colorstudy', 'Color Study', 'art', (ctx, o) => {
   const c = Math.min(cw, ch);
   const cells = new Map();
   const add = (col) => cells.get(col) || cells.set(col, new Path2D()).get(col);
-  const bgOf = (i, j) => pal[Math.floor(o.hash(i, j, 0) * L)];
+  const tone = tones(o, 0.22);
+  const bgOf = (i, j) => tone.pick(o.hash(i, j, 0));
   for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) add(bgOf(i, j)).rect(i * cw, j * ch, cw + o.px, ch + o.px);
   for (const [col, p] of cells) {
     ctx.fillStyle = col;
@@ -1596,8 +1622,7 @@ def('colorstudy', 'Color Study', 'art', (ctx, o) => {
       let cy = (j + 0.5) * ch + (h(2) - 0.5) * c * 0.08;
       let r = c * (0.36 + h(3) * 0.07);
       for (let q = 0; q < rings; q++) {
-        const choices = pal.filter((x) => x !== prev);
-        const colr = choices[Math.floor(h(10 + q) * choices.length)];
+        const colr = tone.pick(h(10 + q), [prev]);
         const p = new Path2D();
         wobbleCircle(p, cx, cy, r, wob, [h(20 + q) * TAU, h(30 + q) * TAU, h(40 + q) * TAU]);
         ctx.fillStyle = colr;
@@ -1949,13 +1974,13 @@ def('cutouts', 'Cut-Outs', 'art', (ctx, o) => {
   const inset = 5 * k;
   const jit = Math.min(cw, ch) * 0.012;
   const sheets = [];
+  const tone = tones(o, 0);
   for (let j = 0; j < rows; j++) {
     for (let i = 0; i < cols; i++) {
       const avoid = [o.bg];
       if (i) avoid.push(sheets[sheets.length - 1].col);
       if (j) avoid.push(sheets[sheets.length - cols].col);
-      const choices = pal.filter((c) => !avoid.includes(c));
-      const col = choices.length ? o.pick(choices) : o.pick(pal);
+      const col = tone.pick(rng(), avoid);
       const corner = () => [o.rand(-jit, jit), o.rand(-jit, jit)];
       sheets.push({ x: i * cw, y: j * ch, col, c: [corner(), corner(), corner(), corner()] });
     }
@@ -2078,7 +2103,7 @@ def('atomic', 'Atomic Age', 'art', (ctx, o) => {
   const c = 140 * o.scale;
   const line = contrastInk(o);
   const skip = 0.34 - o.detail * 0.03;
-  const fills = others(o.ink, line).length ? others(o.ink, line) : [line];
+  const tone = tones(o);
   const lw = c * 0.022;
   const mix = Math.floor(rng() * 3); // which motifs lead: 0 bursts, 1 boomerangs, 2 even
   const cols = Math.ceil(o.W / c) + 2;
@@ -2184,8 +2209,8 @@ def('atomic', 'Atomic Age', 'art', (ctx, o) => {
       if (mix === 0) t = t < 0.45 ? 0.05 : t;
       if (mix === 1) t = t < 0.35 ? 0.45 : t;
       const kind = t < 0.22 ? 'burst' : t < 0.36 ? 'sputnik' : t < 0.55 ? 'boomerang' : t < 0.66 ? 'atom' : t < 0.82 ? 'sparkle' : 'kidney';
-      const col = fills[Math.floor(h(6) * fills.length)];
-      const col2 = cyc(fills, Math.floor(h(6) * fills.length) + 1);
+      const col = tone.pick(h(6), [o.bg, line]);
+      const col2 = tone.pick(h(7), [o.bg, line, col]);
       items.push({ x, y, r, rot, kind, col, col2, layer: kind === 'kidney' || kind === 'boomerang' ? 0 : 1 });
     }
   }
