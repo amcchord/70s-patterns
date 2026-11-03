@@ -46,6 +46,7 @@ Invented palettes follow the same rules. Chroma is capped by hue at roughly what
   | <kbd>←</kbd> | Back |
   | <kbd>S</kbd> | Surprise me |
   | <kbd>P</kbd> | Invent a palette |
+  | <kbd>F</kbd> | Full screen |
   | <kbd>[</kbd> <kbd>]</kbd> | Previous or next style |
 
 ## How it works

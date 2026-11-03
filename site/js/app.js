@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=42';
+} from './core.js?v=43';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -920,6 +920,7 @@ function bind() {
     } else if (e.key === 'ArrowLeft') back();
     else if (e.key === 's' || e.key === 'S') surprise();
     else if (e.key === 'p' || e.key === 'P') invent();
+    else if (e.key === 'f' || e.key === 'F') openFullscreen();
     else if (e.key === ']') stepStyle(1);
     else if (e.key === '[') stepStyle(-1);
   });
