@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=44';
+import { PATTERNS } from './patterns.js?v=46';
 
 export const MAX_SIDE = 8192;
 
@@ -224,10 +224,13 @@ function paper(rand) {
 }
 
 // Take a curated palette and turn its hues, keeping its value structure.
-function remixPalette(rand) {
-  const pool = PALETTES.filter((p) => p.colors.length >= 4);
+function remixPalette(rand, group) {
+  const all = PALETTES.filter((p) => p.colors.length >= 4);
+  const inGroup = all.filter((p) => p.group === group);
+  const pool = inGroup.length ? inGroup : all;
   const src = pool[Math.floor(rand() * pool.length)].colors;
-  const turn = 30 + rand() * 300;
+  // Within a group, turn only a little so the group's mood (warm 70s, chalky soft) survives.
+  const turn = group && inGroup.length ? rand() * 70 - 35 : 30 + rand() * 300;
   const chroma = 0.85 + rand() * 0.25;
   const [L0, C0, h0] = hexToOklch(src[0]);
   // Light grounds stay paper-coloured; dark grounds turn with the inks.
@@ -241,10 +244,11 @@ function remixPalette(rand) {
 }
 
 // Build a palette from scratch on a hue scheme, with a deliberate value ladder.
-function composePalette(rand) {
+function composePalette(rand, group) {
   const pick = (arr) => arr[Math.floor(rand() * arr.length)];
   const r = (a, b) => a + rand() * (b - a);
-  const scheme = pick(['analogous', 'complement', 'split', 'retro', 'earthy', 'triad']);
+  const schemes = group === '70s' ? ['retro', 'retro', 'earthy'] : ['analogous', 'complement', 'split', 'retro', 'earthy', 'triad'];
+  const scheme = pick(schemes);
   let h0 = rand() * 360;
   let hues;
   if (scheme === 'analogous') hues = [h0, h0 + 30, h0 + 60, h0 - 25];
@@ -258,8 +262,8 @@ function composePalette(rand) {
     h0 = r(55, 115);
     hues = [h0, h0 - 30, h0 + 35, h0 + 80];
   }
-  const muted = scheme === 'earthy' ? 0.6 : r(0.8, 1);
-  const dark = rand() < 0.18;
+  const muted = (scheme === 'earthy' ? 0.6 : r(0.8, 1)) * (group === 'soft' ? 0.65 : 1);
+  const dark = group === 'soft' ? false : rand() < (group === 'pop' ? 0.4 : 0.18);
   const n = 3 + Math.floor(rand() * 3);
   const ground = dark ? oklchToHex(r(0.18, 0.24), r(0.025, 0.06), (hues[2] + 180) % 360) : paper(rand);
   const ladder = dark ? [0.88, 0.76, 0.66, 0.56, 0.48] : [0.28, 0.5, 0.62, 0.72, 0.82];
@@ -303,10 +307,11 @@ export function separateColors(colors, gap = 12) {
   return out;
 }
 
-export function inventPalette(rand = Math.random) {
+// group (optional) is a palette group id: invented palettes then lean on that group's moods.
+export function inventPalette(rand = Math.random, group = null) {
   let pal;
   for (let attempt = 0; attempt < 16; attempt++) {
-    pal = rand() < 0.5 ? remixPalette(rand) : composePalette(rand);
+    pal = rand() < (group ? 0.7 : 0.5) ? remixPalette(rand, group) : composePalette(rand, group);
     if (separated(pal)) return pal;
   }
   return pal;

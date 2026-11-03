@@ -17,7 +17,10 @@ Everything runs in the browser. There is no server-side code, no build step and 
   - *Bauhaus, geometric & op:* Bauhaus Blocks, Kaleido Quilt, Chevron Op, Truchet Rings, Tumbling Blocks, Op Squares, Op Bulge, Op Lines, Halftone, Weave, Star & Cross
   - *Art & abstract:* Composition, Floating Circles and Color Study (after Kandinsky), De Stijl Grid (after Mondrian), Cut-Outs (after Matisse), Homage (after Albers), Atomic Age
 - **49 curated palettes in four groups:** Seventies, Modern art, Pop & op, and Soft. You can edit any colour, add or remove colours, or shuffle their order. The first colour is the background.
-- **Invent palette** makes up a new palette. Half the time it remixes a curated palette, turning its hues in OKLCH while keeping its value structure. The rest of the time it composes one from pigment rules. Results whose colours sit too close together are rejected and tried again.
+- **Invent palette** makes up a new palette that follows the mood of the open palette tab:
+  - It usually remixes a curated palette from that group, turning its hues gently in OKLCH while keeping its value structure.
+  - Otherwise it composes one from pigment rules: warm schemes for Seventies, muted chroma for Soft.
+  - Results whose colours sit too close together are rejected and tried again.
 
 ## Palettes
 
