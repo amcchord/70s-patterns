@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=17';
+} from './core.js?v=18';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -129,7 +129,23 @@ function schedule() {
   });
 }
 
+// Hovering a style or palette with a mouse previews it without committing.
+let peek = null;
+function setPeek(patch) {
+  peek = patch;
+  schedule();
+}
+function hoverPeek(el, patch) {
+  el.addEventListener('pointerenter', (e) => {
+    if (e.pointerType === 'mouse') setPeek(patch());
+  });
+  el.addEventListener('pointerleave', () => {
+    if (peek) setPeek(null);
+  });
+}
+
 function drawPreview() {
+  const spec = peek ? { ...state, ...peek } : state;
   const [ow, oh] = outputSize();
   const aspect = ow / oh;
   const wide = window.matchMedia('(min-width: 960px)').matches;
@@ -148,7 +164,7 @@ function drawPreview() {
 
   // Per-pixel styles are costlier, so keep their preview a little lighter.
   let scale = dpr();
-  const budget = PATTERNS_BY_ID[state.style].pixels ? 2.2e6 : 6e6;
+  const budget = PATTERNS_BY_ID[spec.style].pixels ? 2.2e6 : 6e6;
   if (cssW * cssH * scale * scale > budget) scale = Math.sqrt(budget / (cssW * cssH));
   const pw = Math.max(1, Math.round(cssW * scale));
   const ph = Math.max(1, Math.round(cssH * scale));
@@ -156,8 +172,8 @@ function drawPreview() {
     preview.width = pw;
     preview.height = ph;
   }
-  renderPattern(preview.getContext('2d'), state, pw, ph);
-  if (!varPending) {
+  renderPattern(preview.getContext('2d'), spec, pw, ph);
+  if (!peek && !varPending) {
     varPending = true;
     requestAnimationFrame(() => {
       varPending = false;
@@ -238,11 +254,13 @@ function buildStyles() {
       label.textContent = p.name;
       b.append(c, label);
       b.addEventListener('click', () => {
+        peek = null;
         if (state.style === p.id) return;
         remember();
         state.style = p.id;
         commit();
       });
+      hoverPeek(b, () => ({ style: p.id }));
       grid.append(b);
       thumbs.set(p.id, c);
     }
@@ -313,11 +331,13 @@ function buildPalettes() {
     name.textContent = p.name;
     b.append(strip, name);
     b.addEventListener('click', () => {
+      peek = null;
       remember();
       state.palette = p.id;
       state.colors = [...p.colors];
       commit();
     });
+    hoverPeek(b, () => ({ colors: p.colors }));
     root.append(b);
   }
 }
