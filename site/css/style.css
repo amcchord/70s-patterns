@@ -131,6 +131,9 @@ h1 span { color: var(--ink); text-shadow: 2px 2px 0 var(--gold), 4px 4px 0 var(-
 .variation:hover canvas { transform: translate(-2px, -2px); box-shadow: 3px 3px 0 var(--shadow); }
 .variation:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; border-radius: 6px; }
 
+.bar.tools { margin-top: 12px; gap: 8px; }
+.bar.tools .btn { background: transparent; }
+
 /* ------------------------------------------------------------ buttons */
 
 .btn {

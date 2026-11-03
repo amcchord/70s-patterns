@@ -15,9 +15,9 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Shrikhand&display=swap">
-  <link rel="modulepreload" href="js/core.js?v=22">
-  <link rel="modulepreload" href="js/patterns.js?v=22">
-  <link rel="stylesheet" href="css/style.css?v=22">
+  <link rel="modulepreload" href="js/core.js?v=23">
+  <link rel="modulepreload" href="js/patterns.js?v=23">
+  <link rel="stylesheet" href="css/style.css?v=23">
 </head>
 <body>
   <header class="masthead">
@@ -38,10 +38,12 @@
         <button id="generate" class="btn big" title="New pattern (Space)">New pattern</button>
         <button id="surprise" class="btn ghost" title="Random style and palette (S)">Surprise me</button>
         <label class="seed" title="Same seed + settings = same pattern">Seed <input id="seed" spellcheck="false" autocomplete="off" maxlength="24"></label>
-        <button id="share" class="btn ghost" title="Copy a link to this exact pattern">Copy link</button>
-        <button id="copyImage" class="btn ghost" title="Copy a 2048 px image to paste into another app">Copy image</button>
-        <button id="save" class="btn ghost" title="Keep this pattern on your shelf, in this browser">&hearts; Save</button>
-        <button id="fullscreen" class="btn ghost" title="See it full screen, at your screen's shape. Space for another, Esc to close.">Full screen</button>
+      </div>
+      <div class="bar tools">
+        <button id="save" class="btn small" title="Keep this pattern on your shelf, in this browser">&hearts; Save</button>
+        <button id="share" class="btn small" title="Copy a link to this exact pattern">Copy link</button>
+        <button id="copyImage" class="btn small" title="Copy a 2048 px image to paste into another app">Copy image</button>
+        <button id="fullscreen" class="btn small" title="See it full screen, at your screen's shape. Space for another, Esc to close.">Full screen</button>
       </div>
       <p class="about"><strong id="aboutName"></strong> <span id="aboutText"></span></p>
       <div class="var-head"><span>Variations</span><button id="moreVars" class="link" title="Show six more seeds">Show more</button></div>
@@ -118,6 +120,6 @@
   </div>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=22"></script>
+  <script type="module" src="js/app.js?v=23"></script>
 </body>
 </html>
