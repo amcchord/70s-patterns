@@ -2904,6 +2904,63 @@ def('weave', 'Weave', 'geo', (ctx, o) => {
   }
 }, { thumb: { scale: 1.5, seed: 'k' } });
 
+def('starcross', 'Star & Cross', 'geo', (ctx, o) => {
+  const { rng } = o;
+  const sp = 120 * o.scale; // star spacing
+  // Two squares make each eight-point star; with half-side sp/(2√2) neighbouring tips just touch,
+  // and the space left between four stars is a cross.
+  const a = sp / (2 * Math.SQRT2);
+  const tone = tones(o, 0.3);
+  const cross = tone.pick(rng());
+  const starA = tone.pick(rng(), [cross]);
+  const starB = rng() < 0.5 ? tone.pick(rng(), [cross, starA]) : starA;
+  const inner = tone.pick(rng(), [starA, starB]);
+  const core = tone.pick(rng(), [inner]);
+  const nests = 1 + (o.detail >= 4) + (o.detail >= 8);
+  const grout = rng() < 0.6 ? mixHex(darkest(o.colors), '#000000', 0.1) : null;
+  const cols = Math.ceil(o.W / sp) + 2;
+  const rows = Math.ceil(o.H / sp) + 2;
+  const star = (p, cx, cy, h) => {
+    const pts = [];
+    for (let k = 0; k < 16; k++) {
+      // Alternate outer tips (on the squares' corners) and inner notches (where the squares cross).
+      const ang = (k * Math.PI) / 8;
+      const r = k & 1 ? h * 1.0824 : h * Math.SQRT2; // 1.0824 = 1 / cos(22.5°)
+      pts.push([cx + r * Math.cos(ang), cy + r * Math.sin(ang)]);
+    }
+    p.moveTo(...pts[0]);
+    for (let k = 1; k < 16; k++) p.lineTo(...pts[k]);
+    p.closePath();
+  };
+  ctx.fillStyle = cross;
+  ctx.fillRect(-sp, -sp, o.W + 2 * sp, o.H + 2 * sp);
+  const layers = Array.from({ length: nests + 1 }, () => new Map());
+  const add = (map, col) => map.get(col) || map.set(col, new Path2D()).get(col);
+  for (let j = -1; j < rows; j++) {
+    for (let i = -1; i < cols; i++) {
+      const cx = i * sp;
+      const cy = j * sp;
+      star(add(layers[0], (i + j) & 1 ? starB : starA), cx, cy, a);
+      for (let q = 1; q <= nests; q++) star(add(layers[q], q & 1 ? inner : core), cx, cy, a * (1 - q * 0.26));
+    }
+  }
+  for (const layer of layers) {
+    for (const [col, p] of layer) {
+      ctx.fillStyle = col;
+      ctx.fill(p);
+    }
+  }
+  if (grout) {
+    // Thin lead lines around every star, like glazed tilework.
+    const p = new Path2D();
+    for (let j = -1; j < rows; j++) for (let i = -1; i < cols; i++) star(p, i * sp, j * sp, a);
+    ctx.strokeStyle = grout;
+    ctx.lineWidth = sp * 0.025;
+    ctx.lineJoin = 'miter';
+    ctx.stroke(p);
+  }
+}, { thumb: { scale: 1.3 } });
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2938,5 +2995,6 @@ const ABOUT = {
   homage: 'Nested squares that sit low and glow, after Josef Albers.',
   paisley: 'Banded paisleys with flower hearts and dotted edges, in offset rows.',
   weave: 'Woven bands, plain or twill, in madras-style stripe repeats.',
+  starcross: 'Eight-point stars and crosses, as in Moorish tiles and quilts.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';
