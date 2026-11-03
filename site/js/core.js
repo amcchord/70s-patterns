@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=11';
+import { PATTERNS } from './patterns.js?v=12';
 
 export const MAX_SIDE = 8192;
 
@@ -379,6 +379,27 @@ export function paletteFromPixels(rgba, rand = Math.random, maxInks = 5) {
   return [groundHex, ...inks.map((c) => oklabToHex(c.lab))];
 }
 
+// ---------------------------------------------------------------- vintage
+// Age a palette like a print left in the sun: inks lose chroma and drift warm,
+// blacks lift toward brown, and the paper yellows. age runs from 0 to 1.
+
+export function ageColors(colors, age) {
+  if (!age) return colors;
+  const t = Math.min(1, Math.max(0, age));
+  return colors.map((hex, k) => {
+    const [L, A, B] = hexToOklab(hex);
+    if (k === 0 && L > 0.6) {
+      // Paper: a little darker and yellower.
+      return oklabToHex([L - 0.035 * t, A + (0.006 - A) * 0.8 * t, B + (0.045 - B) * 0.8 * t]);
+    }
+    // Inks: lose chroma, then pick up a thin yellow varnish. Working in Lab rather
+    // than rotating hue keeps blues fading to slate instead of drifting to purple.
+    const keep = 1 - 0.42 * t;
+    const lift = L < 0.45 ? (0.45 - L) * 0.45 * t : 0;
+    return oklabToHex([L + lift - (L > 0.8 ? 0.02 * t : 0), A * keep + 0.004 * t, B * keep + 0.024 * t]);
+  });
+}
+
 export const PALETTES_BY_ID = Object.fromEntries(PALETTES.map((p) => [p.id, p]));
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
 export { PATTERNS };
@@ -395,7 +416,7 @@ export function renderPattern(ctx, spec, pxW, pxH, viewX = 0, viewY = 0) {
   const H = pxH / unit;
   const seed = hashString(`${gen.id}:${spec.seed}`);
   const rng = mulberry32(seed);
-  const colors = spec.colors.length >= 2 ? spec.colors : ['#ffffff', '#000000'];
+  const colors = ageColors(spec.colors.length >= 2 ? spec.colors : ['#ffffff', '#000000'], (spec.age || 0) / 100);
   const o = {
     W, H, unit,
     px: 1 / unit,

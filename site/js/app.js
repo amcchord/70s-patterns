@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels,
-} from './core.js?v=11';
+} from './core.js?v=12';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -28,7 +28,7 @@ const SIZES = [
   ['custom', 'Custom size…'],
 ];
 
-const DEFAULTS = { style: 'waves', palette: 'harvest', scale: 1, detail: 5, rotation: 0, size: '7680x4320', custom: '3000x2000' };
+const DEFAULTS = { style: 'waves', palette: 'harvest', scale: 1, detail: 5, rotation: 0, age: 0, size: '7680x4320', custom: '3000x2000' };
 
 // ---------------------------------------------------------------- state & URL
 
@@ -73,6 +73,7 @@ function parseState(str) {
   s.scale = clamp(parseFloat(q.get('scale')) || 1, 0.4, 2.5);
   s.detail = clamp(Math.round(parseFloat(q.get('detail')) || 5), 1, 10);
   s.rotation = clamp(Math.round(parseFloat(q.get('rot')) || 0), -90, 90);
+  s.age = clamp(Math.round(parseFloat(q.get('age')) || 0), 0, 100);
   const size = q.get('size');
   if (size && /^\d+x\d+$/.test(size)) {
     if (SIZES.some(([id]) => id === size)) s.size = size;
@@ -93,6 +94,7 @@ function toHash() {
   q.set('scale', String(state.scale));
   q.set('detail', String(state.detail));
   if (state.rotation) q.set('rot', String(state.rotation));
+  if (state.age) q.set('age', String(state.age));
   q.set('size', state.size === 'custom' ? state.custom : state.size);
   return q.toString();
 }
@@ -250,7 +252,7 @@ function buildStyles() {
 
 let thumbKey = '';
 function drawThumbs() {
-  const key = state.colors.join();
+  const key = `${state.colors.join()}|${state.age}`;
   if (key === thumbKey) return;
   thumbKey = key;
   const ids = [...thumbs.keys()];
@@ -262,7 +264,7 @@ function drawThumbs() {
       const id = ids.shift();
       const c = thumbs.get(id);
       const t = PATTERNS_BY_ID[id].thumb || {};
-      renderPattern(c.getContext('2d'), { style: id, seed: t.seed || 'groovy', colors: state.colors, scale: t.scale || 1.7, detail: 5, rotation: 0 }, c.width, c.height);
+      renderPattern(c.getContext('2d'), { style: id, seed: t.seed || 'groovy', colors: state.colors, age: state.age, scale: t.scale || 1.7, detail: 5, rotation: 0 }, c.width, c.height);
     }
     if (ids.length) requestAnimationFrame(step);
   };
@@ -390,9 +392,10 @@ function syncControls({ chips = true } = {}) {
   const gen = PATTERNS_BY_ID[state.style];
   $('aboutName').textContent = gen.name;
   $('aboutText').textContent = gen.about;
-  for (const id of ['scale', 'detail', 'rotation']) {
+  for (const id of ['scale', 'detail', 'rotation', 'age']) {
     $(id).value = state[id];
-    $(id).nextElementSibling.textContent = id === 'scale' ? `${Number(state[id]).toFixed(2)}×` : id === 'rotation' ? `${state[id]}°` : state[id];
+    const v = state[id];
+    $(id).nextElementSibling.textContent = id === 'scale' ? `${Number(v).toFixed(2)}×` : id === 'rotation' ? `${v}°` : id === 'age' ? (v ? `${v}%` : 'Off') : v;
   }
   $('size').value = SIZES.some(([id]) => id === state.size) ? state.size : 'custom';
   $('custom').hidden = state.size !== 'custom';
@@ -671,7 +674,7 @@ function bind() {
     state.seed = v;
     commit();
   });
-  for (const id of ['scale', 'detail', 'rotation']) {
+  for (const id of ['scale', 'detail', 'rotation', 'age']) {
     $(id).addEventListener('pointerdown', () => remember());
     $(id).addEventListener('input', () => {
       state[id] = Number($(id).value);

@@ -15,7 +15,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=DM+Sans:opsz,wght@9..40,400;9..40,500;9..40,700&family=Shrikhand&display=swap">
-  <link rel="stylesheet" href="css/style.css?v=11">
+  <link rel="stylesheet" href="css/style.css?v=12">
 </head>
 <body>
   <header class="masthead">
@@ -73,6 +73,7 @@
         <label class="slider"><span>Scale</span><input type="range" id="scale" min="0.4" max="2.5" step="0.05"><output for="scale"></output></label>
         <label class="slider"><span>Detail</span><input type="range" id="detail" min="1" max="10" step="1"><output for="detail"></output></label>
         <label class="slider"><span>Rotate</span><input type="range" id="rotation" min="-90" max="90" step="1"><output for="rotation"></output></label>
+        <label class="slider" title="Fade the colours like an old print: softer inks, warmer paper"><span>Vintage</span><input type="range" id="age" min="0" max="100" step="5"><output for="age"></output></label>
       </section>
 
       <section class="card" id="savedCard" hidden>
@@ -103,6 +104,6 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=11"></script>
+  <script type="module" src="js/app.js?v=12"></script>
 </body>
 </html>
