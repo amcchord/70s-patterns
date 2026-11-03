@@ -48,3 +48,4 @@ The site is static and lives on the shared mcchord.net server (`ssh mcchord.net`
 - 8K UHD export times on a laptop (2026-11-03, measured on the first 27 styles; Parquet and Halftone are under 1 s at default settings, Halftone about 2 s at its finest): 0.6–1.8 s for most; Composition, Floating Circles, Op Bulge and Op Lines take 2.5–3 s; Liquid Groove takes 4.2 s. Strips yield with a MessageChannel, not setTimeout, so exports don't slow down in background tabs.
 - Export strips use a software-rasterised canvas (`willReadFrequently`), so every strip is drawn the same way.
 - Saved patterns ("Your shelf") live in the viewer's localStorage only; they are not synced anywhere.
+- Sizes are capped at 16:1 (`fitSize` in app.js). Patterns scale to the shorter side, so an 8192 × 16 strip would hold hundreds of thousands of sub-pixel cells and take 20 s or more. At 8192 × 512, the smallest scale and maximum detail, every style exports in under 4 s.

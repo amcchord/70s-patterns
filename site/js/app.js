@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=41';
+} from './core.js?v=42';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -105,9 +105,20 @@ function clamp(v, lo, hi) {
   return Math.max(lo, Math.min(hi, v));
 }
 
+// Patterns scale to the shorter side, so a very thin strip would hold hundreds of
+// sub-pixel repeats. Keep sizes within 16:1 by lengthening the short side.
+const MAX_RATIO = 16;
+function fitSize(w, h) {
+  w = clamp(Math.round(w) || 1920, 16, MAX_SIDE);
+  h = clamp(Math.round(h) || 1080, 16, MAX_SIDE);
+  if (w > h * MAX_RATIO) h = Math.ceil(w / MAX_RATIO);
+  if (h > w * MAX_RATIO) w = Math.ceil(h / MAX_RATIO);
+  return [w, h];
+}
+
 function outputSize() {
   const [w, h] = (state.size === 'custom' ? state.custom : state.size).split('x').map(Number);
-  return [clamp(w || 1920, 16, MAX_SIDE), clamp(h || 1080, 16, MAX_SIDE)];
+  return fitSize(w, h);
 }
 
 function remember() {
@@ -882,8 +893,7 @@ function bind() {
   });
   for (const id of ['cw', 'ch']) {
     $(id).addEventListener('change', () => {
-      const w = clamp(Math.round(Number($('cw').value)) || 16, 16, MAX_SIDE);
-      const h = clamp(Math.round(Number($('ch').value)) || 16, 16, MAX_SIDE);
+      const [w, h] = fitSize(Number($('cw').value) || 16, Number($('ch').value) || 16);
       $('cw').value = w;
       $('ch').value = h;
       state.custom = `${w}x${h}`;
