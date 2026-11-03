@@ -2581,7 +2581,8 @@ def('homage', 'Homage', 'art', (ctx, o) => {
   };
   const layers = Array.from({ length: n }, () => new Map());
   if (single) {
-    const size = Math.min(o.W, o.H) * 0.92 * Math.min(1, o.scale);
+    // Scale only moderates a single homage; it should always command the frame.
+    const size = Math.min(o.W, o.H) * 0.92 * (0.7 + 0.3 * Math.min(1, o.scale));
     const set = pickSet(1);
     ctx.fillStyle = set[0];
     ctx.fillRect(-o.px, -o.px, o.W + 2 * o.px, o.H + 2 * o.px);

@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=23';
+} from './core.js?v=24';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -887,7 +887,8 @@ function bind() {
     previewVisible = entry.isIntersecting;
     drawMini();
   }, { threshold: 0.15 }).observe(preview);
-  $('mini').addEventListener('click', () => preview.scrollIntoView({ behavior: 'smooth', block: 'center' }));
+  const smooth = !window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  $('mini').addEventListener('click', () => preview.scrollIntoView({ behavior: smooth ? 'smooth' : 'auto', block: 'center' }));
 }
 
 buildStyles();

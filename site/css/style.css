@@ -391,6 +391,13 @@ select {
 .mini canvas { display: block; }
 .mini[hidden] { display: none; }
 
+.mini:focus-visible { outline: 3px solid var(--orange); outline-offset: 2px; }
+
+/* Respect a preference for less motion: no transitions, the hint stays put. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+
 /* ------------------------------------------------------------ full screen */
 
 .fs { position: fixed; inset: 0; z-index: 20; background: #000; }
