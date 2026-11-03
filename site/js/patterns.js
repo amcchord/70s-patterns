@@ -479,7 +479,7 @@ def('flowers', 'Flower Power', '70s', (ctx, o) => {
   const c = 150 * o.scale;
   const outline = rng() < 0.55 ? darkest(o.colors) : null;
   const olw = c * 0.018;
-  const pal = others(o.colors, o.bg);
+  const tone = tones(o, 0);
   const doubleP = 0.3 + o.detail * 0.06;
   const cols = Math.ceil(o.W / c) + 2;
   const rows = Math.ceil(o.H / c) + 2;
@@ -493,7 +493,10 @@ def('flowers', 'Flower Power', '70s', (ctx, o) => {
         R: c * (0.38 + h(3) * 0.42),
         k: 5 + Math.floor(h(4) * 7),
         rot: h(5) * TAU,
-        ci: Math.floor(h(6) * pal.length),
+        c1: h(6),
+        c2: h(9),
+        c3: h(10),
+        c4: h(11),
         double: h(7) < doubleP,
         order: h(8),
       });
@@ -522,11 +525,16 @@ def('flowers', 'Flower Power', '70s', (ctx, o) => {
     ctx.fill(p);
   };
   for (const fl of flowers) {
-    petals(fl, fl.R, cyc(pal, fl.ci), 0);
-    if (fl.double) petals(fl, fl.R * 0.62, cyc(pal, fl.ci + 1), Math.PI / fl.k);
+    // Petals follow the palette's weighting; each ring differs from the one beneath it.
+    const p1 = tone.pick(fl.c1, [o.bg]);
+    const p2 = tone.pick(fl.c2, [o.bg, p1]);
+    const core = tone.pick(fl.c3, [fl.double ? p2 : p1, o.bg]);
+    const dot = tone.pick(fl.c4, [core]);
+    petals(fl, fl.R, p1, 0);
+    if (fl.double) petals(fl, fl.R * 0.62, p2, Math.PI / fl.k);
     if (outline) disc(ctx, fl.x, fl.y, fl.R * 0.26 + olw, outline);
-    disc(ctx, fl.x, fl.y, fl.R * 0.26, cyc(pal, fl.ci + 2));
-    disc(ctx, fl.x, fl.y, fl.R * 0.12, cyc(pal, fl.ci + 3));
+    disc(ctx, fl.x, fl.y, fl.R * 0.26, core);
+    disc(ctx, fl.x, fl.y, fl.R * 0.12, dot);
   }
 });
 

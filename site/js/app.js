@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels,
-} from './core.js?v=7';
+} from './core.js?v=8';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -630,6 +630,14 @@ function bind() {
   $('surprise').addEventListener('click', surprise);
   $('invent').addEventListener('click', invent);
   $('flip').addEventListener('click', flipGround);
+  $('copyHex').addEventListener('click', async () => {
+    try {
+      await navigator.clipboard.writeText(state.colors.join(' '));
+      toast('Colours copied');
+    } catch {
+      toast(state.colors.join(' '));
+    }
+  });
   $('fromImage').addEventListener('click', () => $('imageFile').click());
   $('imageFile').addEventListener('change', async () => {
     await paletteFromImage($('imageFile').files[0]);

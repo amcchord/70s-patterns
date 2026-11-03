@@ -275,7 +275,8 @@ h3:first-child { margin-top: 0; }
 .palette .strip i { flex: 1; }
 .palette .name { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.chips-row { margin-top: 12px; }
+.chips-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.chips-row .link { flex: 0 0 auto; margin-top: 10px; font-size: 12px; font-weight: 700; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { position: relative; display: grid; justify-items: center; }
 .chip input[type='color'] {
