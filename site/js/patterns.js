@@ -1509,7 +1509,7 @@ def('composition', 'Composition', 'art', (ctx, o) => {
     const r = gap * o.rand(0.22, 0.34);
     for (let b = 0; b < m; b++) disc(ctx, x + Math.cos(a) * gap * b, y + Math.sin(a) * gap * b, r, line);
   }
-}, { thumb: { scale: 1.1 } });
+}, { thumb: { scale: 1.1 }, fit: true });
 
 def('circles', 'Floating Circles', 'art', (ctx, o) => {
   const { rng } = o;
@@ -1592,7 +1592,7 @@ def('circles', 'Floating Circles', 'art', (ctx, o) => {
     }
     ctx.globalAlpha = 1;
   }
-}, { thumb: { scale: 1.2 } });
+}, { thumb: { scale: 1.2 }, fit: true });
 
 def('colorstudy', 'Color Study', 'art', (ctx, o) => {
   const { rng } = o;

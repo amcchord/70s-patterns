@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
-  renderPattern, exportPNG, randomSeed, inventPalette,
-} from './core.js?v=6';
+  renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels,
+} from './core.js?v=7';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -535,6 +535,32 @@ function flipGround() {
   commit();
 }
 
+// Take a palette from a picture. It is read and shrunk locally; nothing is uploaded.
+async function paletteFromImage(file) {
+  if (!file || !file.type.startsWith('image/')) return;
+  try {
+    const bmp = await createImageBitmap(file);
+    const k = Math.min(1, 160 / Math.max(bmp.width, bmp.height));
+    const w = Math.max(1, Math.round(bmp.width * k));
+    const h = Math.max(1, Math.round(bmp.height * k));
+    const c = document.createElement('canvas');
+    c.width = w;
+    c.height = h;
+    const g = c.getContext('2d', { willReadFrequently: true });
+    g.drawImage(bmp, 0, 0, w, h);
+    const colors = paletteFromPixels(g.getImageData(0, 0, w, h).data);
+    if (!colors) throw new Error('no colours found');
+    remember();
+    state.colors = colors;
+    state.palette = 'custom';
+    commit();
+    toast('Palette taken from your image (it never left this browser)');
+  } catch (err) {
+    console.error(err);
+    toast('Could not read colours from that image');
+  }
+}
+
 function invent() {
   remember();
   state.palette = 'custom';
@@ -604,6 +630,21 @@ function bind() {
   $('surprise').addEventListener('click', surprise);
   $('invent').addEventListener('click', invent);
   $('flip').addEventListener('click', flipGround);
+  $('fromImage').addEventListener('click', () => $('imageFile').click());
+  $('imageFile').addEventListener('change', async () => {
+    await paletteFromImage($('imageFile').files[0]);
+    $('imageFile').value = '';
+  });
+  // Drop a picture anywhere on the page to take its colours.
+  window.addEventListener('dragover', (e) => {
+    if ([...e.dataTransfer.items].some((i) => i.type.startsWith('image/'))) e.preventDefault();
+  });
+  window.addEventListener('drop', (e) => {
+    const file = [...e.dataTransfer.files].find((f) => f.type.startsWith('image/'));
+    if (!file) return;
+    e.preventDefault();
+    paletteFromImage(file);
+  });
   $('save').addEventListener('click', savePattern);
   $('back').addEventListener('click', back);
   $('download').addEventListener('click', download);

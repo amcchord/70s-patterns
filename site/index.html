@@ -59,6 +59,8 @@
         </div>
         <div class="row">
           <button id="invent" class="btn small" title="Make up a new harmonious palette (P)">Invent palette</button>
+          <button id="fromImage" class="btn small" title="Take a palette from a photo, or drop one on the page. It stays in your browser.">From image&hellip;</button>
+          <input type="file" id="imageFile" accept="image/*" hidden>
           <button id="flip" class="btn small" title="Swap the background with its strongest contrast: day to night and back">Flip ground</button>
           <button id="shuffle" class="btn small" title="Shuffle colour order (the first colour is the background)">Shuffle order</button>
           <button id="addColor" class="btn small">+ Colour</button>
@@ -100,6 +102,6 @@
   </footer>
 
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
-  <script type="module" src="js/app.js?v=6"></script>
+  <script type="module" src="js/app.js?v=7"></script>
 </body>
 </html>

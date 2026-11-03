@@ -1,5 +1,5 @@
 // Seeded randomness, palettes, the render pipeline and the strip-based PNG exporter.
-import { PATTERNS } from './patterns.js?v=6';
+import { PATTERNS } from './patterns.js?v=7';
 
 export const MAX_SIDE = 8192;
 
@@ -278,6 +278,107 @@ export function inventPalette(rand = Math.random) {
   return pal;
 }
 
+// ---------------------------------------------------------------- palettes from images
+// k-means in OKLab over a small copy of the image, then the same palette rules as
+// the curated set: a paper or ink ground, distinct inks, and a dark anchor.
+
+function oklabToHex([L, a, b]) {
+  return oklchToHex(L, Math.hypot(a, b), ((Math.atan2(b, a) * 180) / Math.PI + 360) % 360);
+}
+
+export function paletteFromPixels(rgba, rand = Math.random, maxInks = 5) {
+  const lin = (c) => (c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4);
+  const pts = [];
+  for (let i = 0; i < rgba.length; i += 4) {
+    if (rgba[i + 3] < 128) continue;
+    const r = lin(rgba[i] / 255), g = lin(rgba[i + 1] / 255), b = lin(rgba[i + 2] / 255);
+    const l = Math.cbrt(0.4122214708 * r + 0.5363325363 * g + 0.0514459929 * b);
+    const m = Math.cbrt(0.2119034982 * r + 0.6806995451 * g + 0.1073969566 * b);
+    const s = Math.cbrt(0.0883024619 * r + 0.2817188376 * g + 0.6299787005 * b);
+    pts.push([
+      0.2104542553 * l + 0.793617785 * m - 0.0040720468 * s,
+      1.9779984951 * l - 2.428592205 * m + 0.4505937099 * s,
+      0.0259040371 * l + 0.7827717662 * m - 0.808675766 * s,
+    ]);
+  }
+  if (pts.length < 16) return null;
+  const d2 = (p, q) => (p[0] - q[0]) ** 2 + (p[1] - q[1]) ** 2 + (p[2] - q[2]) ** 2;
+  // k-means++ seeding, then a dozen Lloyd iterations.
+  const K = Math.min(10, pts.length);
+  const cents = [pts[Math.floor(rand() * pts.length)].slice()];
+  const best = new Float64Array(pts.length).fill(Infinity);
+  while (cents.length < K) {
+    let sum = 0;
+    for (let i = 0; i < pts.length; i++) {
+      best[i] = Math.min(best[i], d2(pts[i], cents[cents.length - 1]));
+      sum += best[i];
+    }
+    let t = rand() * sum;
+    let pick = 0;
+    for (; pick < pts.length - 1 && (t -= best[pick]) > 0; pick++);
+    cents.push(pts[pick].slice());
+  }
+  const assign = new Int32Array(pts.length);
+  const counts = new Array(K).fill(0);
+  for (let it = 0; it < 12; it++) {
+    const acc = cents.map(() => [0, 0, 0]);
+    counts.fill(0);
+    for (let i = 0; i < pts.length; i++) {
+      let bi = 0, bd = Infinity;
+      for (let k = 0; k < K; k++) {
+        const d = d2(pts[i], cents[k]);
+        if (d < bd) { bd = d; bi = k; }
+      }
+      assign[i] = bi;
+      counts[bi]++;
+      acc[bi][0] += pts[i][0];
+      acc[bi][1] += pts[i][1];
+      acc[bi][2] += pts[i][2];
+    }
+    for (let k = 0; k < K; k++) if (counts[k]) cents[k] = acc[k].map((v) => v / counts[k]);
+  }
+  const clusters = cents.map((c, k) => ({ lab: c, n: counts[k], L: c[0], C: Math.hypot(c[1], c[2]) })).filter((c) => c.n > 0);
+  const far = (x, chosen, gap) => chosen.every((y) => 100 * Math.sqrt(d2(x.lab, y.lab)) >= gap);
+
+  // Ground: the most common very light (or, for dark images, very dark) colour, calmed to paper or ink.
+  const byCount = clusters.slice().sort((p, q) => q.n - p.n);
+  const lightShare = clusters.filter((c) => c.L > 0.7).reduce((t, c) => t + c.n, 0) / pts.length;
+  const darkGround = lightShare < 0.15 && rand() < 0.7;
+  const groundSrc = darkGround ? clusters.reduce((p, q) => (q.L < p.L ? q : p)) : byCount.find((c) => c.L > 0.75) || clusters.reduce((p, q) => (q.L > p.L ? q : p));
+  const gh = (Math.atan2(groundSrc.lab[2], groundSrc.lab[1]) * 180) / Math.PI;
+  const groundHex = darkGround
+    ? oklchToHex(Math.min(0.24, groundSrc.L), Math.min(0.06, groundSrc.C), (gh + 360) % 360)
+    : oklchToHex(Math.max(0.93, groundSrc.L), Math.min(0.035, groundSrc.C), groundSrc.C < 0.01 ? 85 : (gh + 360) % 360);
+  const ground = { lab: hexToOklab(groundHex) };
+
+  // Inks: favour colours that are both common and colourful, and keep them apart.
+  const ranked = clusters
+    .filter((c) => c !== groundSrc)
+    .sort((p, q) => q.n * (0.35 + q.C * 6) - p.n * (0.35 + p.C * 6));
+  const inks = [];
+  for (const c of ranked) {
+    if (inks.length >= maxInks) break;
+    if (far(c, [ground, ...inks], 11)) inks.push(c);
+  }
+  // A dark anchor for structure: the image's own darkest colour, deepened if need be,
+  // or failing that a deep shade of the leading ink.
+  if (!darkGround && !inks.some((c) => c.L < 0.4)) {
+    const own = clusters
+      .filter((c) => c !== groundSrc && c.L < 0.5)
+      .sort((p, q) => p.L - q.L)[0];
+    const src = own || inks[0] || groundSrc;
+    const h = (Math.atan2(src.lab[2], src.lab[1]) * 180) / Math.PI;
+    const L = own ? Math.min(own.L, 0.32) : 0.27;
+    const anchor = { lab: hexToOklab(oklchToHex(L, Math.min(own ? 0.1 : 0.06, src.C), (h + 360) % 360)) };
+    const rest = inks.filter((c) => far(c, [anchor], 11));
+    inks.length = 0;
+    inks.push(anchor, ...rest.slice(0, maxInks - 1));
+  }
+  if (!inks.length) return null;
+  inks.sort((p, q) => p.lab[0] - q.lab[0]);
+  return [groundHex, ...inks.map((c) => oklabToHex(c.lab))];
+}
+
 export const PALETTES_BY_ID = Object.fromEntries(PALETTES.map((p) => [p.id, p]));
 export const PATTERNS_BY_ID = Object.fromEntries(PATTERNS.map((p) => [p.id, p]));
 export { PATTERNS };
@@ -321,7 +422,12 @@ export function renderPattern(ctx, spec, pxW, pxH, viewX = 0, viewY = 0) {
   } else {
     ctx.setTransform(unit, 0, 0, unit, -viewX, -viewY);
     ctx.lineJoin = 'round';
-    if (o.angle) {
+    if (o.angle && gen.fit) {
+      // Compositions turn in place at frame size; the ground already fills the corners.
+      ctx.translate(W / 2, H / 2);
+      ctx.rotate(o.angle);
+      ctx.translate(-W / 2, -H / 2);
+    } else if (o.angle) {
       // Rotate about the centre and hand the pattern a square big enough to cover the frame.
       const D = Math.hypot(W, H);
       ctx.translate(W / 2, H / 2);

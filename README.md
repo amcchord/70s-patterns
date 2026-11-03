@@ -29,6 +29,8 @@ Colour carries these patterns, so every curated palette follows the same rules:
 - **Order matters.** Banded styles cycle through inks in order. Seventies palettes therefore run as gradients, the way 70s bands were printed, while modern palettes alternate warm and cool.
 
 Invented palettes follow the same rules. Chroma is capped by hue at roughly what real pigments reach, so greens and cyans never go neon. Light tints lean slightly toward yellow and deep shades toward red-brown, as pigments do.
+- **Palette from image.** Click *From image…*, or drop a photo on the page. The page clusters the photo's colours in OKLab and builds a palette from them using the same rules as the curated set. The image is read in the browser and never uploaded.
+- **Flip ground** swaps the background with its strongest contrast, giving any palette a night or day version.
 - **Variations.** Under the preview you see six other seeds of the current style. Click one to swap it in.
 - **Your shelf.** *♥ Save* keeps favourite patterns in this browser, so you can come back to them.
 - **Scale, Detail and Rotate** sliders.
