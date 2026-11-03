@@ -20,3 +20,41 @@
 **Production actions:** created `/var/www/mcchord.net/patterns/` and rsynced the site into it. Nothing else on the server was touched.
 
 **Next:** none required. Possible extras: seamless-tile export, SVG export, more styles.
+
+## 2026-11-03 — palettes, twelve new styles, refinement loop
+
+**Scope:** Austin asked for more palettes, then a two-hour improvement loop aimed at a "masterpiece" with clean execution. Kandinsky-style abstracts were welcome. Mid-session he asked for refined, non-generic palettes.
+
+**Built** (all on `main`, pushed and deployed in four checkpoints)
+- Styles, 14 → 26:
+  - *1970s:* Rainbow Tiles, Sunrise.
+  - *Geometric & op:* Tumbling Blocks, Op Squares, Op Bulge (per pixel, lens-warped), Op Lines.
+  - *Art & abstract:* Composition, Floating Circles and Color Study (after Kandinsky), De Stijl Grid, Cut-Outs (after Matisse), Atomic Age.
+- Palettes, 14 → 43, in four tabbed groups. After an OKLab audit they were rebuilt from real references; the rules are written above `PALETTES`.
+- Invent palette:
+  - It either remixes a curated palette by turning its hues in OKLCH, or composes one from pigment rules.
+  - Chroma is capped by hue, so greens and cyans don't go neon.
+  - Results whose colours sit too close together are rejected.
+- UI additions:
+  - Flip ground, Variations row (six alternative seeds), Your shelf (localStorage), and a style description under the preview.
+  - `[` `]` and `P` shortcuts.
+  - Palette tabs stay on one line on phones.
+- New social image.
+
+**Fixed**
+- Op Lines strokes folded at tight crests and left pinholes. Lines are now filled ribbons; a crack scan of the 8K output finds 0.
+- Export strips now render in software (`willReadFrequently`), so every strip is rasterised the same way.
+- Starburst hubs had anti-aliasing specks; the spikes now start at the centre.
+- Op Bulge lenses could fold the grid where they overlapped; they now apply one after another.
+
+**Verified**
+- Labelled QA grids of all styles across many palettes: dark, three-colour, pastel and invented.
+- Palette boards rendered per group, plus 20 invented palettes.
+- 8K exports decode at full size; 100% crops inspected.
+- Strip renders match a single-canvas render apart from anti-aliasing jitter.
+- Mobile at 375 px has no overflow; dark mode checked.
+- Save, load and remove on the shelf, and variation swapping, were exercised. No console errors.
+
+**Production actions:** rsynced `site/` to `/var/www/mcchord.net/patterns/` four times with `scripts/deploy.sh`. Nothing else on the server was touched.
+
+**Next:** possible extras are seamless-tile export and SVG export for the vector styles.

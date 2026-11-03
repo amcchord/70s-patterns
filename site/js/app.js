@@ -499,6 +499,23 @@ function surprise() {
   commit();
 }
 
+// Swap the ground with the ink that contrasts with it most: a night version of a
+// day palette, or the other way round.
+function flipGround() {
+  const c = state.colors;
+  const lum = (hex) => {
+    const n = parseInt(hex.slice(1), 16);
+    return 0.2126 * ((n >> 16) & 255) + 0.7152 * ((n >> 8) & 255) + 0.0722 * (n & 255);
+  };
+  let best = 1;
+  for (let i = 2; i < c.length; i++) if (Math.abs(lum(c[i]) - lum(c[0])) > Math.abs(lum(c[best]) - lum(c[0]))) best = i;
+  remember();
+  state.colors = c.slice();
+  [state.colors[0], state.colors[best]] = [state.colors[best], state.colors[0]];
+  state.palette = 'custom';
+  commit();
+}
+
 function invent() {
   remember();
   state.palette = 'custom';
@@ -567,6 +584,7 @@ function bind() {
   $('generate').addEventListener('click', newSeed);
   $('surprise').addEventListener('click', surprise);
   $('invent').addEventListener('click', invent);
+  $('flip').addEventListener('click', flipGround);
   $('save').addEventListener('click', savePattern);
   $('back').addEventListener('click', back);
   $('download').addEventListener('click', download);
