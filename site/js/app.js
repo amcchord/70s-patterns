@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=36';
+} from './core.js?v=37';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -416,6 +416,7 @@ function buildChips() {
     input.addEventListener('input', () => {
       state.colors[i] = input.value;
       input.title = `${i === 0 ? 'Background' : `Colour ${i + 1}`} · ${input.value}`;
+      $('paletteName').textContent = 'Custom colours';
       colourTip();
       state.palette = 'custom';
       commit({ chips: false });
@@ -443,6 +444,8 @@ function buildChips() {
     root.append(chip);
   });
   $('addColor').disabled = state.colors.length >= 8;
+  const pal = PALETTES_BY_ID[state.palette];
+  $('paletteName').textContent = pal ? pal.name : 'Custom colours';
   colourTip();
 }
 

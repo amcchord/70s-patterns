@@ -279,7 +279,9 @@ h3:first-child { margin-top: 0; }
 .palette .strip i:first-child { flex: 1.7; } /* the ground gets more room, as it does in a pattern */
 .palette .name { font-size: 12px; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.chips-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 12px; }
+.pal-name { margin: 14px 0 0; font-weight: 700; font-size: 13px; }
+.pal-name small { font-weight: 500; color: var(--ink-soft); }
+.chips-row { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-top: 8px; }
 .chips-row .link { flex: 0 0 auto; margin-top: 10px; font-size: 12px; font-weight: 700; }
 .chips { display: flex; flex-wrap: wrap; gap: 8px; }
 .chip { position: relative; display: grid; justify-items: center; }
