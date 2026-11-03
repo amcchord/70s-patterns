@@ -2495,6 +2495,66 @@ def('parquet', 'Parquet', '70s', (ctx, o) => {
   });
 });
 
+def('halftone', 'Halftone', 'geo', (ctx, o) => {
+  const { rng } = o;
+  const S = Math.min(o.W, o.H);
+  const pitch = 21 * o.scale * (1.3 - o.detail * 0.06);
+  const light = luminance(o.bg) > 110;
+  const pool = others(o.ink, o.bg);
+  const n = Math.min(pool.length, 1 + Math.floor(rng() * 3));
+  // Print screens sit at angles that keep their rosettes fine: 15°, 45° and 75°.
+  const angles = [15, 75, 45].map((d) => (d * Math.PI) / 180);
+  const smooth = (t) => (t <= 0 ? 0 : t >= 1 ? 1 : t * t * (3 - 2 * t));
+  const layers = [];
+  const inksUsed = [];
+  for (let q = 0; q < n; q++) {
+    const col = tones(o, 0).pick(rng(), [o.bg, ...inksUsed]);
+    inksUsed.push(col);
+    const mode = Math.floor(rng() * 3); // 0 blobs, 1 ramp, 2 ripples
+    const blobs = Array.from({ length: 2 + Math.floor(rng() * 3) }, () => [o.rand(0, o.W), o.rand(0, o.H), S * o.rand(0.18, 0.42), o.rand(0.6, 1.1)]);
+    const dir = o.rand(0, TAU);
+    const ripple = [o.rand(0, o.W), o.rand(0, o.H), S * o.rand(0.09, 0.2)];
+    const field = (x, y) => {
+      if (mode === 0) {
+        let f = 0;
+        for (const [cx, cy, sg, w] of blobs) f += w * Math.exp(-((x - cx) ** 2 + (y - cy) ** 2) / (2 * sg * sg));
+        return Math.min(1, f);
+      }
+      if (mode === 1) {
+        const t = ((x - o.W / 2) * Math.cos(dir) + (y - o.H / 2) * Math.sin(dir)) / S + 0.5;
+        return smooth(t * 0.9 + 0.05 + 0.06 * Math.sin((x + y) / (S * 0.07)));
+      }
+      const d = Math.hypot(x - ripple[0], y - ripple[1]);
+      return 0.5 + 0.5 * Math.sin(d / ripple[2] * TAU / 4);
+    };
+    layers.push({ col, field, angle: angles[q] + o.rand(-0.03, 0.03) });
+  }
+
+  ctx.globalCompositeOperation = light ? 'multiply' : 'screen';
+  const W0 = o.W, H0 = o.H;
+  for (const L of layers) {
+    withTurn(ctx, o, L.angle, (W, H) => {
+      const ca = Math.cos(L.angle), sa = Math.sin(L.angle);
+      const p = new Path2D();
+      for (let v = pitch / 2; v < H; v += pitch) {
+        for (let u = pitch / 2; u < W; u += pitch) {
+          // Sample the field where this dot lands in the frame, so screens line up.
+          const x = W0 / 2 + ca * (u - W / 2) - sa * (v - H / 2);
+          const y = H0 / 2 + sa * (u - W / 2) + ca * (v - H / 2);
+          if (x < -pitch || y < -pitch || x > W0 + pitch || y > H0 + pitch) continue;
+          // Area follows the field, so tones read evenly; at full strength dots just merge.
+          const r = pitch * 0.56 * Math.sqrt(L.field(x, y));
+          if (r < pitch * 0.06) continue;
+          p.moveTo(u + r, v);
+          p.arc(u, v, r, 0, TAU);
+        }
+      }
+      ctx.fillStyle = L.col;
+      ctx.fill(p);
+    });
+  }
+}, { thumb: { scale: 1.3 } });
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2525,5 +2585,6 @@ const ABOUT = {
   atomic: 'Mid-century starbursts, boomerangs, atoms and sparkles.',
   kaleido: 'A mirrored psychedelic mandala, alone or as glazed tiles whose mirrors meet.',
   parquet: 'Herringbone and basketweave parquet, laid plank by plank with dark grout.',
+  halftone: 'Pop-art halftone: angled screens of dots, overprinted like ink.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';
