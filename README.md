@@ -8,6 +8,8 @@ Generate 1970s, Bauhaus, op-art and abstract patterns on demand, then download t
 
 Everything runs in the browser. There is no server-side code, no build step and no dependencies. It is three ES modules and a stylesheet.
 
+![Every style, each in a palette that suits it](docs/showcase.png)
+
 ## Features
 
 - **33 pattern styles in three families**

@@ -90,7 +90,17 @@
   - More featured pairings.
   - Homage keeps its size at small scale.
   - Reduced-motion support.
-- Totals: 32 styles, 49 palettes.
+- Final stretch:
+  - Star & Cross style.
+  - Kaleidoscope wedge shapes are kept clear of the mirror lines. A 4K scan of the old version flagged about 2,000–7,000 hairline pixels; the new one flags a few dozen, all legitimate tiny features. Lesson recorded in AGENTS.md.
+  - Bauhaus Blocks and Petal Drops: grounds are drawn first and paths merged per colour.
+  - Composition: grid fragments, and lines that change colour inside the sun.
+  - Picks gallery, palette name label, better thumbnails, and frame coverage for Homage when rotated.
+  - Sizes capped at 16:1. 8192 × 16 took 20 s or more; 8192 × 512 exports in under 4 s.
+  - F shortcut.
+  - `docs/showcase.png` sheet of all styles.
+- Live site check: loads in about 150 ms, 56 KB over 5 requests, no console errors.
+- Totals: 33 styles, 49 palettes.
 - Not verified: Copy image's success path. The app's built-in browser denies clipboard writes; only the fallback message was seen.
 
 **Next:** seamless-tile export was considered and deferred. Only about six cell-based styles (Truchet, Color Study, Bauhaus Blocks, Rainbow Tiles, Homage, Parquet) could tile exactly. SVG export for the vector styles is the other candidate.
