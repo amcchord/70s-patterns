@@ -10,8 +10,8 @@ Everything runs in the browser. There is no server-side code, no build step and 
 
 ## Features
 
-- **26 pattern styles in three families**
-  - *1970s:* Groovy Waves, Rainbow Scales, Petal Drops, Loop Chain, Ogee Onions, Diamond Nest, Liquid Groove, Flower Power, Supergraphic, Mod Targets, Rainbow Tiles, Sunrise
+- **27 pattern styles in three families**
+  - *1970s:* Groovy Waves, Rainbow Scales, Petal Drops, Loop Chain, Ogee Onions, Diamond Nest, Liquid Groove, Flower Power, Supergraphic, Mod Targets, Rainbow Tiles, Sunrise, Kaleidoscope
   - *Bauhaus, geometric & op:* Bauhaus Blocks, Kaleido Quilt, Chevron Op, Truchet Rings, Tumbling Blocks, Op Squares, Op Bulge, Op Lines
   - *Art & abstract:* Composition, Floating Circles and Color Study (after Kandinsky), De Stijl Grid (after Mondrian), Cut-Outs (after Matisse), Atomic Age
 - **43 curated palettes in four groups:** Seventies, Modern art, Pop & op, and Soft. You can edit any colour, add or remove colours, or shuffle their order. The first colour is the background.
@@ -88,7 +88,7 @@ The background is already filled when `draw` runs. Draw past the edges freely; t
 ./scripts/deploy.sh
 ```
 
-This rsyncs `site/` (minus `sheet.html`) to `/var/www/mcchord.net/patterns/` and checks each asset over HTTPS. Set `DEPLOY_HOST`, `DEPLOY_PATH` and `DEPLOY_URL` to publish elsewhere. The site uses relative paths, so it works under any directory, including GitHub Pages. When you change CSS or JS, bump the `?v=N` query strings in `index.html`, `app.js`, `core.js` and `sheet.html`.
+This rsyncs `site/` (minus `sheet.html`) to `/var/www/mcchord.net/patterns/` and checks each asset over HTTPS. Set `DEPLOY_HOST`, `DEPLOY_PATH` and `DEPLOY_URL` to publish elsewhere. The site uses relative paths, so it works under any directory, including GitHub Pages. When you change CSS or JS, run `python3 scripts/bump.py` first. It moves every `?v=N` cache-busting query string to the next version together.
 
 ## License
 

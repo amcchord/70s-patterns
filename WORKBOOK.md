@@ -10,7 +10,7 @@
 
 ```text
 site/                 the deployable static site
-  index.html          page shell (bump ?v=N on css/js when they change)
+  index.html          page shell (scripts/bump.py moves ?v=N on css/js)
   js/app.js           UI: state <-> URL hash, preview, variations, thumbnails, palettes, shelf, export
   js/core.js          PRNG/hash, palettes + palette rules, inventPalette(), renderPattern(), exportPNG()
   js/patterns.js      the 26 pattern generators, drawing helpers and ABOUT descriptions
@@ -24,6 +24,7 @@ scripts/deploy.sh     rsync site/ -> mcchord.net:/var/www/mcchord.net/patterns/ 
 
 ```bash
 python3 scripts/serve.py                                        # no-cache preview on :8771 (also .claude/launch.json "patterns")
+python3 scripts/bump.py                                         # bump ?v=N cache busters after CSS/JS changes
 ./scripts/deploy.sh                                             # publish (only when asked)
 ```
 

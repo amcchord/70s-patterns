@@ -2286,6 +2286,149 @@ def('oplines', 'Op Lines', 'geo', (ctx, o) => {
   });
 });
 
+def('kaleido', 'Kaleidoscope', '70s', (ctx, o) => {
+  const { rng } = o;
+  const tiled = rng() < 0.45;
+  // Tiled mandalas use 4-fold mirrors, so each square tile matches its neighbours at the edges.
+  const n = tiled ? 4 : o.pick([5, 6, 6, 8, 8, 10, 12]);
+  const wedge = Math.PI / n;
+  const tone = tones(o, 0.18);
+  const line = contrastInk(o);
+
+  // Concentric bands under everything, then shapes placed in one wedge (unit radius).
+  const B = 3 + Math.floor(o.detail / 3);
+  const bands = [];
+  for (let b = 0; b < B; b++) bands.push(tone.pick(rng(), bands.length ? [bands[bands.length - 1]] : []));
+  const bandAt = (r) => bands[Math.min(B - 1, Math.floor((1 - Math.min(1, r)) * B))];
+  const shapes = [];
+  const m = Math.round(8 + o.detail * 3.2);
+  for (let q = 0; q < m; q++) {
+    const r = 0.07 + 0.91 * rng() ** 0.7;
+    const a = rng() * wedge;
+    const size = (0.025 + 0.07 * rng()) * (0.45 + r);
+    const kind = o.pick(['petal', 'petal', 'disc', 'ring', 'tri', 'eye', 'dots', 'arc']);
+    const under = bandAt(r);
+    const c1 = tone.pick(rng(), [under]);
+    const c2 = tone.pick(rng(), [c1, under]);
+    shapes.push({ r, a, size, kind, c1, c2 });
+  }
+  shapes.sort((p, q) => q.size - p.size);
+
+  const drawShapes = (R) => {
+    for (const sh of shapes) {
+      const x = Math.cos(sh.a) * sh.r * R;
+      const y = Math.sin(sh.a) * sh.r * R;
+      const z = sh.size * R;
+      if (sh.kind === 'petal' || sh.kind === 'eye') {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(sh.a);
+        ctx.fillStyle = sh.c1;
+        ctx.beginPath();
+        ctx.ellipse(0, 0, z * 1.7, z * (sh.kind === 'eye' ? 0.7 : 0.55), 0, 0, TAU);
+        ctx.fill();
+        if (sh.kind === 'eye') disc(ctx, 0, 0, z * 0.38, sh.c2);
+        ctx.restore();
+      } else if (sh.kind === 'disc') {
+        disc(ctx, x, y, z, sh.c1);
+        disc(ctx, x, y, z * 0.45, sh.c2);
+      } else if (sh.kind === 'ring') {
+        ctx.strokeStyle = sh.c1;
+        ctx.lineWidth = z * 0.32;
+        ctx.beginPath();
+        ctx.arc(x, y, z, 0, TAU);
+        ctx.stroke();
+      } else if (sh.kind === 'tri') {
+        ctx.save();
+        ctx.translate(x, y);
+        ctx.rotate(sh.a);
+        ctx.fillStyle = sh.c1;
+        ctx.beginPath();
+        ctx.moveTo(z * 1.6, 0);
+        ctx.lineTo(-z * 0.8, z * 0.9);
+        ctx.lineTo(-z * 0.8, -z * 0.9);
+        ctx.closePath();
+        ctx.fill();
+        ctx.restore();
+      } else if (sh.kind === 'dots') {
+        for (let k = 0; k < 3; k++) disc(ctx, x + Math.cos(sh.a) * z * 1.1 * k, y + Math.sin(sh.a) * z * 1.1 * k, z * 0.32, k === 1 ? sh.c2 : sh.c1);
+      } else {
+        ctx.strokeStyle = sh.c1;
+        ctx.lineWidth = z * 0.4;
+        ctx.beginPath();
+        ctx.arc(0, 0, sh.r * R, sh.a - 0.3 * wedge, sh.a + 0.3 * wedge);
+        ctx.stroke();
+      }
+    }
+  };
+
+  // One mirrored mandala. Each wedge's clip is widened by about a pixel on both edges, so
+  // mirrored neighbours overlap instead of meeting in an anti-aliased hairline.
+  const mandala = (cx, cy, R) => {
+    for (let b = 0; b < B; b++) disc(ctx, cx, cy, R * (1 - b / B) + (b ? 0 : o.px), bands[b]);
+    const d = o.px * 0.75;
+    const ex = R * 1.5;
+    const n2 = [-Math.sin(wedge), Math.cos(wedge)];
+    const x0 = -(d + d * Math.cos(wedge)) / Math.sin(wedge);
+    for (let k = 0; k < 2 * n; k++) {
+      ctx.save();
+      ctx.translate(cx, cy);
+      if (k & 1) {
+        ctx.rotate((k + 1) * wedge);
+        ctx.scale(1, -1);
+      } else ctx.rotate(k * wedge);
+      ctx.beginPath();
+      ctx.moveTo(x0, -d);
+      ctx.lineTo(ex, -d);
+      ctx.lineTo(ex * Math.cos(wedge) + d * n2[0], ex * Math.sin(wedge) + d * n2[1]);
+      ctx.closePath();
+      ctx.clip();
+      drawShapes(R);
+      ctx.restore();
+    }
+    disc(ctx, cx, cy, R * 0.06, line);
+  };
+
+  if (!tiled) {
+    mandala(o.W / 2, o.H / 2, Math.hypot(o.W, o.H) / 2 + o.px);
+    return;
+  }
+  const c = 330 * o.scale;
+  // When the frame turns, tile far enough to cover its corners.
+  const span = o.angle ? Math.hypot(o.W, o.H) : 0;
+  const cols = Math.ceil((span || o.W) / c) + 1;
+  const rows = Math.ceil((span || o.H) / c) + 1;
+  const ox = (o.W - cols * c) / 2;
+  const oy = (o.H - rows * c) / 2;
+  for (let j = 0; j < rows; j++) {
+    for (let i = 0; i < cols; i++) {
+      const x = ox + i * c;
+      const y = oy + j * c;
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(x - o.px, y - o.px, c + 2 * o.px, c + 2 * o.px);
+      ctx.clip();
+      mandala(x + c / 2, y + c / 2, (c / 2) * Math.SQRT2);
+      ctx.restore();
+    }
+  }
+  // Grout between the tiles, as on glazed ceramic. Where a shape ends just short of a tile
+  // edge, its mirror image leaves a sliver along that edge; the grout makes the edge deliberate.
+  const grout = new Path2D();
+  for (let i = 0; i <= cols; i++) {
+    grout.moveTo(ox + i * c, oy);
+    grout.lineTo(ox + i * c, oy + rows * c);
+  }
+  for (let j = 0; j <= rows; j++) {
+    grout.moveTo(ox, oy + j * c);
+    grout.lineTo(ox + cols * c, oy + j * c);
+  }
+  ctx.strokeStyle = o.bg;
+  ctx.lineWidth = Math.max(c * 0.016, 2 * o.px);
+  ctx.lineCap = 'butt';
+  ctx.stroke(grout);
+}, { thumb: { scale: 1.2 }, fit: true });
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2314,5 +2457,6 @@ const ABOUT = {
   destijl: 'De Stijl grids after Mondrian, sometimes boogie-woogie.',
   cutouts: 'Paper cut-out fronds and stars, after Matisse.',
   atomic: 'Mid-century starbursts, boomerangs, atoms and sparkles.',
+  kaleido: 'A mirrored psychedelic mandala, alone or as glazed tiles whose mirrors meet.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';
