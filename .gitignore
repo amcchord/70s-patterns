@@ -1,0 +1,6 @@
+.DS_Store
+.claude/
+output/
+scratch/
+tmp/
+*.log

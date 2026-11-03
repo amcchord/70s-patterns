@@ -1,0 +1,44 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Contact sheet</title>
+  <!-- Dev tool: renders many style/seed combinations at once for visual QA.
+       sheet.html?styles=waves,ogee&seeds=a,b,c&palette=harvest&w=480&h=320&scale=1&detail=5&rot=0 -->
+  <style>
+    body { margin: 0; background: #222; color: #ddd; font: 12px system-ui, sans-serif; }
+    #grid { display: flex; flex-wrap: wrap; gap: 8px; padding: 8px; }
+    figure { margin: 0; }
+    figcaption { padding: 2px 0; }
+  </style>
+</head>
+<body>
+  <div id="grid"></div>
+  <script type="module">
+    import { PATTERNS, PALETTES_BY_ID, renderPattern } from './js/core.js?v=1';
+    const q = new URLSearchParams(location.search);
+    const styles = (q.get('styles') || PATTERNS.map((p) => p.id).join()).split(',');
+    const seeds = (q.get('seeds') || 'a,b,c').split(',');
+    const palettes = (q.get('palette') || 'harvest').split(',');
+    const w = +q.get('w') || 480;
+    const h = +q.get('h') || 320;
+    const grid = document.getElementById('grid');
+    for (const style of styles) for (const palette of palettes) for (const seed of seeds) {
+      const fig = document.createElement('figure');
+      const c = document.createElement('canvas');
+      c.width = w;
+      c.height = h;
+      const t0 = performance.now();
+      renderPattern(c.getContext('2d'), {
+        style, seed, colors: PALETTES_BY_ID[palette].colors,
+        scale: +q.get('scale') || 1, detail: +q.get('detail') || 5, rotation: +q.get('rot') || 0,
+      }, w, h);
+      const cap = document.createElement('figcaption');
+      cap.textContent = `${style} · ${palette} · ${seed} · ${(performance.now() - t0).toFixed(1)}ms`;
+      fig.append(c, cap);
+      grid.append(fig);
+    }
+    document.body.dataset.done = '1';
+  </script>
+</body>
+</html>
