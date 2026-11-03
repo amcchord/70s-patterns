@@ -1,7 +1,7 @@
 import {
   PATTERNS, PATTERNS_BY_ID, PALETTES, PALETTES_BY_ID, PALETTE_GROUPS, MAX_SIDE,
   renderPattern, exportPNG, randomSeed, inventPalette, paletteFromPixels, deltaE,
-} from './core.js?v=19';
+} from './core.js?v=20';
 
 const $ = (id) => document.getElementById(id);
 const dpr = () => Math.min(window.devicePixelRatio || 1, 2);
@@ -561,6 +561,7 @@ function surprise() {
   state.scale = Math.round((0.7 + Math.random() * 0.8) * 20) / 20;
   state.detail = 3 + Math.floor(Math.random() * 6);
   state.rotation = Math.random() < 0.2 ? Math.round((Math.random() - 0.5) * 60) : 0;
+  state.age = Math.random() < 0.15 ? 25 + 5 * Math.floor(Math.random() * 8) : 0;
   commit();
 }
 
@@ -685,7 +686,7 @@ async function download() {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `groovy-${state.style}-${state.seed}-${w}x${h}.png`;
+    a.download = `groovy-${state.style}-${state.palette}-${state.seed}${state.age ? `-vintage${state.age}` : ''}-${w}x${h}.png`;
     document.body.append(a);
     a.click();
     a.remove();

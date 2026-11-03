@@ -2555,6 +2555,63 @@ def('halftone', 'Halftone', 'geo', (ctx, o) => {
   }
 }, { thumb: { scale: 1.3 } });
 
+def('homage', 'Homage', 'art', (ctx, o) => {
+  const { rng } = o;
+  const single = rng() < 0.3;
+  const n = 3 + (o.detail >= 5) + (o.detail >= 9); // squares per homage
+  const glowIn = rng() < 0.6; // lighter toward the centre, or darker
+  const tone = tones(o, 0.2);
+  const lum = (c) => luminance(c);
+  // Each homage: n colours from the palette, distinct, ordered by lightness for the glow.
+  const pickSet = (u) => {
+    const set = [];
+    for (let k = 0; k < n; k++) set.push(tone.pick(o.hash(u * 7919, k, 3), set));
+    set.sort((a, b) => (glowIn ? lum(a) - lum(b) : lum(b) - lum(a)));
+    return set;
+  };
+  // Albers' proportions: the centre square sits low, so the top margin is three times the bottom.
+  const nest = (x, y, size, set, layers) => {
+    for (let k = 0; k < set.length; k++) {
+      const inner = size * (1 - (k / set.length) * 0.82);
+      const side = (size - inner) / 2;
+      const down = side * 0.5;
+      layers[k].get(set[k]) || layers[k].set(set[k], new Path2D());
+      layers[k].get(set[k]).rect(x + side, y + side + down, inner, inner);
+    }
+  };
+  const layers = Array.from({ length: n }, () => new Map());
+  if (single) {
+    const size = Math.min(o.W, o.H) * 0.92 * Math.min(1, o.scale);
+    const set = pickSet(1);
+    ctx.fillStyle = set[0];
+    ctx.fillRect(-o.px, -o.px, o.W + 2 * o.px, o.H + 2 * o.px);
+    nest((o.W - size) / 2, (o.H - size) / 2 - size * 0.02, size, set, layers);
+  } else {
+    const c = 250 * o.scale;
+    const cols = Math.max(1, Math.round(o.W / c));
+    const cw = o.W / cols;
+    const rows = Math.ceil(o.H / cw);
+    const oy = (o.H - rows * cw) / 2;
+    for (let j = 0; j < rows; j++) for (let i = 0; i < cols; i++) nest(i * cw, oy + j * cw, cw, pickSet(1 + i + j * 97), layers);
+    // The outer squares tile edge to edge: widen them a hair so they overlap instead of leaving hairlines.
+    const outer = new Map();
+    for (const [col] of layers[0]) outer.set(col, new Path2D());
+    for (let j = 0; j < rows; j++) {
+      for (let i = 0; i < cols; i++) {
+        const col = pickSet(1 + i + j * 97)[0];
+        outer.get(col).rect(i * cw - o.px / 2, oy + j * cw - o.px / 2, cw + o.px, cw + o.px);
+      }
+    }
+    layers[0] = outer;
+  }
+  for (const layer of layers) {
+    for (const [col, p] of layer) {
+      ctx.fillStyle = col;
+      ctx.fill(p);
+    }
+  }
+}, { thumb: { scale: 0.8 }, fit: true });
+
 // One-line descriptions shown under the preview.
 const ABOUT = {
   waves: 'Nested wavy bands, like a 1970s bedspread.',
@@ -2586,5 +2643,6 @@ const ABOUT = {
   kaleido: 'A mirrored psychedelic mandala, alone or as glazed tiles whose mirrors meet.',
   parquet: 'Herringbone and basketweave parquet, laid plank by plank with dark grout.',
   halftone: 'Pop-art halftone: angled screens of dots, overprinted like ink.',
+  homage: 'Nested squares that sit low and glow, after Josef Albers.',
 };
 for (const p of PATTERNS) p.about = ABOUT[p.id] || '';
